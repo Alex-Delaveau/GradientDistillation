@@ -61,7 +61,7 @@ def get_model(name: str, distributed: bool) -> Tuple[nn.Module, int]:
             model = clip.load("RN101")[0].visual.float().cuda()
             num_feat = 512
 
-        case "clip_vitb":
+        case "clip_vitb32":
             model = clip.load("ViT-B/32")[0].visual.float().cuda()
             num_feat = 512
 
