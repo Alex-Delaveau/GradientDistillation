@@ -13,7 +13,7 @@ class AugStandard(nn.Module):
         self.aug = nn.Sequential(
             RandomHorizontalFlip(p=0.5),
             RandomResizedCrop(size=crop_res),
-            RandomGaussianNoise(mean=0.5, std=0.2),
+            RandomGaussianNoise(mean=0.0, std=0.2),
         )
 
     def __call__(self, image: Tensor) -> Tensor:
