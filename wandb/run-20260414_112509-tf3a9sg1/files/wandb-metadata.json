@@ -1,0 +1,20 @@
+{
+  "os":  "macOS-26.3.1-arm64-arm-64bit",
+  "python":  "CPython 3.12.12",
+  "startedAt":  "2026-04-14T09:25:09.913032Z",
+  "args":  [
+    "--model=dinov2_vitb",
+    "--dataset=imagenet-birds",
+    "--job_tag=distillation"
+  ],
+  "program":  "-m distillation.distill",
+  "git":  {
+    "remote":  "git@github.com:Alex-Delaveau/GradientDistillation.git",
+    "commit":  "33d004b8c16d9ab8e39aec780f9edad767f6f033"
+  },
+  "email":  "alex26delaveau@gmail.com",
+  "root":  "/Users/alex/Developpement/Internship/GradientDistillation",
+  "host":  "mac.home",
+  "executable":  "/Users/alex/Developpement/Internship/GradientDistillation/.venv/bin/python3",
+  "writerId":  "su90ctdh0nnnldtfto1g7s58jorewktk"
+}

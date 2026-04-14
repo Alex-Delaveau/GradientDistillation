@@ -7,3 +7,5 @@ logged_files
 src/baselines/results
 src/wandb
 .ipynb_checkpoints
+
+*.egg-info
