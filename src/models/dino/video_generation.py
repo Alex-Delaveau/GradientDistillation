@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
+from my_utils.device import DeviceSingleton
 import vision_transformer as vits
 from PIL import Image
 from torchvision import transforms as pth_transforms
@@ -30,8 +31,7 @@ FOURCC = {
     "mp4": cv2.VideoWriter_fourcc(*"MP4V"),
     "avi": cv2.VideoWriter_fourcc(*"XVID"),
 }
-DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
+DEVICE = DeviceSingleton.get()
 
 class VideoGenerator:
     def __init__(self, args):

@@ -14,7 +14,7 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 from torch import Tensor
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, TensorDataset
 from torchmetrics.classification import MulticlassAccuracy
 from tqdm import tqdm
@@ -23,6 +23,7 @@ from augmentation import AugBasic
 from config import EvalCfg
 from data.dataloaders import get_dataset
 from models import get_fc, get_model
+from my_utils.device import DeviceSingleton
 
 
 class Evaluator:
@@ -75,13 +76,13 @@ class Evaluator:
         self.fc = get_fc(
             num_feats=self.num_feats,
             num_classes=self.num_classes,
-            distributed=torch.cuda.device_count() > 1,
+            distributed=DeviceSingleton.is_distributed(),
         )
 
         self.optimizer = torch.optim.Adam(
             (list(self.fc.parameters())),
             0.001
-            * (self.train_loader.batch_size / torch.cuda.device_count())
+            * (self.train_loader.batch_size / DeviceSingleton.device_count())
             / 256.0,  # linear scaling rule
             weight_decay=0,  # we do not apply weight decay
         )
@@ -95,7 +96,7 @@ class Evaluator:
         self.top1_best = 0
         self.top5_best = 0
 
-        self.scaler = GradScaler()
+        self.scaler = GradScaler(device=DeviceSingleton.get().type)
 
     def train_and_eval(self):
 
@@ -143,9 +144,9 @@ class Evaluator:
     def train_one_epoch(self):
 
         for x, y in tqdm(self.train_loader, desc="Epoch Progress", leave=False):
-            x = x.cuda(non_blocking=True)
-            y = y.cuda(non_blocking=True)
-            with autocast():
+            x = x.to(DeviceSingleton.get(), non_blocking=True)
+            y = y.to(DeviceSingleton.get(), non_blocking=True)
+            with autocast(device_type=DeviceSingleton.get().type):
 
                 with torch.no_grad():
                     x = self.augmentor(x)
@@ -169,15 +170,15 @@ class Evaluator:
         num_classes = self.test_loader.dataset.num_classes
         top1_metric = MulticlassAccuracy(
             average="micro", num_classes=num_classes, top_k=1
-        ).cuda()
+        ).to(DeviceSingleton.get())
         if self.test_loader.dataset.num_classes >= 5:
             top5_metric = MulticlassAccuracy(
                 average="micro", num_classes=num_classes, top_k=5
-            ).cuda()
+            ).to(DeviceSingleton.get())
 
         for x, y in tqdm(self.test_loader, desc="Evaluating Linear Head", leave=False):
-            x = x.cuda()
-            y = y.cuda()
+            x = x.to(DeviceSingleton.get(), non_blocking=True)
+            y = y.to(DeviceSingleton.get(), non_blocking=True)
             x = self.normalize(x)
             z = self.model(x)
 
@@ -202,7 +203,7 @@ class Evaluator:
         print("Saving checkpoint...")
         random_state = {
             "torch": torch.get_rng_state(),
-            "cuda": torch.cuda.get_rng_state_all(),
+            "cuda": DeviceSingleton.get_rng(),
             "python": random.getstate(),
             "numpy": np.random.get_state(),
         }
@@ -242,7 +243,7 @@ class Evaluator:
             self.patience_counter = load_dict["patience_counter"]
 
             torch.set_rng_state(load_dict["random_state"]["torch"])
-            torch.cuda.set_rng_state_all(load_dict["random_state"]["cuda"])
+            DeviceSingleton.set_rng(load_dict["random_state"]["cuda"])
             random.setstate(load_dict["random_state"]["python"])
             np.random.set_state(load_dict["random_state"]["numpy"])
 
@@ -301,22 +302,22 @@ if __name__ == "__main__":
         print("Warning: multiple syn sets found. Using the first one.")
 
     syn_set = torch.load(syn_set_files[0], weights_only=False)
-    syn_images = syn_set["images"].cuda()
+    syn_images = syn_set["images"].to(DeviceSingleton.get(), non_blocking=True)
 
-    syn_labels = syn_set["labels"].cuda()
+    syn_labels = syn_set["labels"].to(DeviceSingleton.get(), non_blocking=True)
 
     print("loaded file from ", run_dir)
     print("eval model is ", cfg.eval_model)
     eval_model, num_feats = get_model(
-        cfg.eval_model, distributed=torch.cuda.device_count() > 1
+        cfg.eval_model, distributed=DeviceSingleton.is_distributed()
     )
 
     ds = TensorDataset(syn_images.detach().clone(), syn_labels.detach().clone())
 
     loader = DataLoader(ds, batch_size=min(100, len(syn_images)), shuffle=True)
 
-    augmentor = AugBasic(crop_res=cfg.crop_res).cuda()
-    augmentor = augmentor.cuda()
+    augmentor = AugBasic(crop_res=cfg.crop_res).to(DeviceSingleton.get())
+    augmentor = augmentor.to(DeviceSingleton.get())
 
     evaluator = Evaluator(
         train_loader=loader,

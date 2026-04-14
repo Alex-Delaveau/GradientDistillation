@@ -1,7 +1,7 @@
 
 import torch
 from tap import Tap
-
+from my_utils.device import DeviceSingleton
 
 class RandomRealsConfig(Tap):
     dataset: str
@@ -14,7 +14,7 @@ class RandomRealsConfig(Tap):
     crop_res: int = 224
     eval_epochs: int = 1000
 
-    device_count: int = torch.cuda.device_count()
+    device_count: int = DeviceSingleton.device_count()
 
     job_tag: str | None = None
 

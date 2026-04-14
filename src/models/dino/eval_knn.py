@@ -18,6 +18,7 @@ import sys
 import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
+from my_utils.device import DeviceSingleton
 import utils
 import vision_transformer as vits
 from torch import nn
@@ -74,7 +75,7 @@ def extract_feature_pipeline(args):
     else:
         print(f"Architecture {args.arch} non supported")
         sys.exit(1)
-    model.cuda()
+    model.to(DeviceSingleton.get())
     utils.load_pretrained_weights(
         model, args.pretrained_weights, args.checkpoint_key, args.arch, args.patch_size
     )
@@ -114,8 +115,8 @@ def extract_features(model, data_loader, use_cuda=True, multiscale=False):
     metric_logger = utils.MetricLogger(delimiter="  ")
     features = None
     for samples, index in metric_logger.log_every(data_loader, 10):
-        samples = samples.cuda(non_blocking=True)
-        index = index.cuda(non_blocking=True)
+        samples = samples.to(DeviceSingleton.get(), non_blocking=True)
+        index = index.to(DeviceSingleton.get(), non_blocking=True)
         if multiscale:
             feats = utils.multi_scale(samples, model)
         else:
@@ -125,7 +126,7 @@ def extract_features(model, data_loader, use_cuda=True, multiscale=False):
         if dist.get_rank() == 0 and features is None:
             features = torch.zeros(len(data_loader.dataset), feats.shape[-1])
             if use_cuda:
-                features = features.cuda(non_blocking=True)
+                features = features.to(DeviceSingleton.get(), non_blocking=True)
             print(f"Storing features into tensor of shape {features.shape}")
 
         # get indexes from all processes
@@ -302,10 +303,10 @@ if __name__ == "__main__":
 
     if utils.get_rank() == 0:
         if args.use_cuda:
-            train_features = train_features.cuda()
-            test_features = test_features.cuda()
-            train_labels = train_labels.cuda()
-            test_labels = test_labels.cuda()
+            train_features = train_features.to(DeviceSingleton.get())
+            test_features = test_features.to(DeviceSingleton.get())
+            train_labels = train_labels.to(DeviceSingleton.get())
+            test_labels = test_labels.to(DeviceSingleton.get())
 
         print("Features are ready!\nStart the k-NN classification.")
         for k in args.nb_knn:

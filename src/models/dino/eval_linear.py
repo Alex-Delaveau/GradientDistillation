@@ -18,6 +18,7 @@ from pathlib import Path
 
 import torch
 import torch.backends.cudnn as cudnn
+from my_utils.device import DeviceSingleton
 import utils
 import vision_transformer as vits
 from torch import nn
@@ -53,7 +54,7 @@ def eval_linear(args):
     else:
         print(f"Unknow architecture: {args.arch}")
         sys.exit(1)
-    model.cuda()
+    model.to(DeviceSingleton.get())
     model.eval()
     # load weights to evaluate
     utils.load_pretrained_weights(
@@ -62,7 +63,7 @@ def eval_linear(args):
     print(f"Model {args.arch} built.")
 
     linear_classifier = LinearClassifier(embed_dim, num_labels=args.num_labels)
-    linear_classifier = linear_classifier.cuda()
+    linear_classifier = linear_classifier.to(DeviceSingleton.get())
     linear_classifier = nn.parallel.DistributedDataParallel(
         linear_classifier, device_ids=[args.gpu]
     )
@@ -209,8 +210,8 @@ def train(model, linear_classifier, optimizer, loader, epoch, n, avgpool):
     header = "Epoch: [{}]".format(epoch)
     for inp, target in metric_logger.log_every(loader, 20, header):
         # move to gpu
-        inp = inp.cuda(non_blocking=True)
-        target = target.cuda(non_blocking=True)
+        inp = inp.to(DeviceSingleton.get(), non_blocking=True)
+        target = target.to(DeviceSingleton.get(), non_blocking=True)
 
         # forward
         with torch.no_grad():
@@ -243,7 +244,8 @@ def train(model, linear_classifier, optimizer, loader, epoch, n, avgpool):
         optimizer.step()
 
         # log
-        torch.cuda.synchronize()
+        if DeviceSingleton.get().type == "cuda":
+            torch.cuda.synchronize()
         metric_logger.update(loss=loss.item())
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
     # gather the stats from all processes
@@ -259,8 +261,8 @@ def validate_network(val_loader, model, linear_classifier, n, avgpool):
     header = "Test:"
     for inp, target in metric_logger.log_every(val_loader, 20, header):
         # move to gpu
-        inp = inp.cuda(non_blocking=True)
-        target = target.cuda(non_blocking=True)
+        inp = inp.to(DeviceSingleton.get(), non_blocking=True)
+        target = target.to(DeviceSingleton.get(), non_blocking=True)
 
         # forward
         with torch.no_grad():

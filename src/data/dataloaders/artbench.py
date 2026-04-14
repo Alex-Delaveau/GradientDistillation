@@ -12,6 +12,8 @@ import torchvision.transforms as transforms
 from torch import Tensor
 from torch.utils.data import DataLoader
 
+from my_utils.device import DeviceSingleton
+
 from .base import BaseRealDataset
 
 
@@ -59,8 +61,8 @@ class ArtBench(BaseRealDataset):
             ]
         )
 
-        self.mean = torch.tensor(mean, device="cuda").reshape(1, 3, 1, 1)
-        self.std = torch.tensor(std, device="cuda").reshape(1, 3, 1, 1)
+        self.mean = torch.tensor(mean, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
+        self.std = torch.tensor(std, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
 
         self.full_ds = torchvision.datasets.ImageFolder(
             root="{}/artbench/{}".format(data_root, split), transform=self.transform

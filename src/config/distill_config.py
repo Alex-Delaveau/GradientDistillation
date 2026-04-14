@@ -2,7 +2,7 @@ from typing import Literal
 
 import torch
 from tap import Tap
-
+from my_utils.device import DeviceSingleton
 
 class DistillCfg(Tap):
     dataset: str
@@ -40,5 +40,5 @@ class DistillCfg(Tap):
 
     train_crop_mode: Literal["center", "random"] = "random"
 
-    device_count: int = torch.cuda.device_count()
+    device_count: int = DeviceSingleton.device_count()
 

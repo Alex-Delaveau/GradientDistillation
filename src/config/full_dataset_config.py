@@ -2,7 +2,7 @@ from typing import Literal
 
 import torch
 from tap import Tap
-
+from my_utils.device import DeviceSingleton
 
 class FullDatasetCfg(Tap):
     dataset: str
@@ -16,8 +16,7 @@ class FullDatasetCfg(Tap):
     eval_epochs: int = 100
     train_crop_mode: Literal["center", "random"] = "random"
 
-    device_count: int = torch.cuda.device_count()
-
+    device_count: int = DeviceSingleton.device_count()
     patience: int = 5
     eval_it: int = -1
 

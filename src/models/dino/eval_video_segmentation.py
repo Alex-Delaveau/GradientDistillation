@@ -24,6 +24,7 @@ from urllib.request import urlopen
 import cv2
 import numpy as np
 import torch
+from my_utils.device import DeviceSingleton
 import utils
 import vision_transformer as vits
 from PIL import Image
@@ -118,7 +119,7 @@ def restrict_neighborhood(h, w):
                     ] = 1
 
     mask = mask.reshape(h * w, h * w)
-    return mask.cuda(non_blocking=True)
+    return mask.to(DeviceSingleton.get(), non_blocking=True)
 
 
 def norm_mask(mask):
@@ -169,7 +170,7 @@ def label_propagation(
 
     aff = aff / torch.sum(aff, keepdim=True, axis=0)
 
-    list_segs = [s.cuda() for s in list_segs]
+    list_segs = [s.to(DeviceSingleton.get()) for s in list_segs]
     segs = torch.cat(list_segs)
     nmb_context, C, h, w = segs.shape
     segs = (
@@ -182,7 +183,7 @@ def label_propagation(
 
 def extract_feature(model, frame, return_h_w=False):
     """Extract one frame feature everytime."""
-    out = model.get_intermediate_layers(frame.unsqueeze(0).cuda(), n=1)[0]
+    out = model.get_intermediate_layers(frame.unsqueeze(0).to(DeviceSingleton.get()), n=1)[0]
     out = out[:, 1:, :]  # we discard the [CLS] token
     h, w = int(frame.shape[1] / model.patch_embed.patch_size), int(
         frame.shape[2] / model.patch_embed.patch_size
@@ -335,7 +336,7 @@ if __name__ == "__main__":
     # building network
     model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0)
     print(f"Model {args.arch} {args.patch_size}x{args.patch_size} built.")
-    model.cuda()
+    model.to(DeviceSingleton.get())
     utils.load_pretrained_weights(
         model, args.pretrained_weights, args.checkpoint_key, args.arch, args.patch_size
     )

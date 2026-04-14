@@ -8,6 +8,8 @@ import tqdm
 from torch import Tensor
 from torch.utils.data import DataLoader
 
+from my_utils.device import DeviceSingleton
+
 from .base import BaseRealDataset
 
 
@@ -66,8 +68,8 @@ class Spawrious(BaseRealDataset):
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
 
-        self.mean = torch.tensor(mean, device="cuda").reshape(1, 3, 1, 1)
-        self.std = torch.tensor(std, device="cuda").reshape(1, 3, 1, 1)
+        self.mean = torch.tensor(mean, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
+        self.std = torch.tensor(std, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
 
         if split == "train":
             self.full_ds = spawrious_benchmark.get_train_dataset()

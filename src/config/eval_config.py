@@ -3,6 +3,8 @@ from typing import Literal
 import torch
 from tap import Tap
 
+from my_utils.device import DeviceSingleton
+
 
 class EvalCfg(Tap):
     dataset: str
@@ -18,7 +20,7 @@ class EvalCfg(Tap):
     eval_epochs: int = 1000
     train_crop_mode: Literal["center", "random"] = "random"
 
-    device_count: int = torch.cuda.device_count()
+    device_count: int = DeviceSingleton.device_count()
 
     skip_if_exists: bool = True
 

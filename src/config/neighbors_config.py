@@ -1,6 +1,6 @@
 import torch
 from tap import Tap
-
+from my_utils.device import DeviceSingleton
 
 class NeighborsCfg(Tap):
     dataset: str
@@ -12,7 +12,7 @@ class NeighborsCfg(Tap):
     real_res: int = 256
     crop_res: int = 224
 
-    device_count: int = torch.cuda.device_count()
+    device_count: int = DeviceSingleton.device_count()
 
     run_name: str | None = None
 

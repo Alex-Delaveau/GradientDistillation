@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -18,6 +18,7 @@ from augmentation import get_augmentor
 from config import DistillCfg
 from data.dataloaders import get_dataset
 from models import get_fc, get_model
+from my_utils.device import DeviceSingleton
 from synsets import get_distilled_dataset
 
 
@@ -182,8 +183,8 @@ class LinearGM:
             batch_real = next(self.train_iter, None)
 
         x_real, y_real = batch_real
-        x_real = x_real.cuda(non_blocking=True)
-        y_real = y_real.cuda(non_blocking=True)
+        x_real = x_real.to(DeviceSingleton.get(), non_blocking=True)
+        y_real = y_real.to(DeviceSingleton.get(), non_blocking=True)
 
         return x_real, y_real
 
@@ -196,7 +197,7 @@ class LinearGM:
         y_real = y_real.detach()
 
         # auto-casting was a *huge* speed up
-        with autocast(enabled=True):
+        with autocast(device_type=DeviceSingleton.get().type, enabled=True):
 
             # we augment each real image just one time because we loaded augs_per_batch * len(x_syn) real images
             x_real = self.real_augmentor(x_real)
@@ -234,7 +235,7 @@ class LinearGM:
     ) -> Tensor:
 
         # auto-casting was a *huge* speed up
-        with autocast(enabled=True):
+        with autocast(device_type=DeviceSingleton.get().type, enabled=True):
 
             # augment create augs_per_batch copies of x_syn and apply different aug to each one
             x_syn = self.syn_augmentor(
@@ -298,7 +299,7 @@ class LinearGM:
             self.global_step = load_dict["global_step"]
 
             torch.set_rng_state(load_dict["random_state"]["torch"])
-            torch.cuda.set_rng_state_all(load_dict["random_state"]["cuda"])
+            DeviceSingleton.set_rng(load_dict["random_state"]["cuda"])
             random.setstate(load_dict["random_state"]["python"])
             np.random.set_state(load_dict["random_state"]["numpy"])
         else:
@@ -308,7 +309,7 @@ class LinearGM:
         print("Saving checkpoint...")
         random_state = {
             "torch": torch.get_rng_state(),
-            "cuda": torch.cuda.get_rng_state_all(),
+            "cuda": DeviceSingleton.get_rng(),
             "python": random.getstate(),
             "numpy": np.random.get_state(),
         }

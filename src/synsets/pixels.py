@@ -5,6 +5,7 @@ from torch import Tensor
 
 from config import DistillCfg
 from data.dataloaders import BaseRealDataset
+from my_utils.device import DeviceSingleton
 from my_utils.log_utils import log_images
 
 from .base import BaseDistilledDataset
@@ -51,10 +52,10 @@ class PixelDataset(BaseDistilledDataset):
                 for c in range(self.train_dataset.num_classes)
             ],
             dim=0,
-        ).cuda()
+        ).to(DeviceSingleton.get())
 
         if self.cfg.init_mode == "real":
-            syn_images = self.train_dataset.get_random_reals(self.cfg.ipc).cuda()
+            syn_images = self.train_dataset.get_random_reals(self.cfg.ipc).to(DeviceSingleton.get())
 
         else:
             syn_images = torch.randn(
@@ -64,7 +65,7 @@ class PixelDataset(BaseDistilledDataset):
                     self.cfg.syn_res,
                     self.cfg.syn_res,
                 )
-            ).cuda()
+            ).to(DeviceSingleton.get())
 
         syn_images.requires_grad_(True)
 

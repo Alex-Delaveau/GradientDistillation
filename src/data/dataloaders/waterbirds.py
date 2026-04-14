@@ -9,6 +9,8 @@ import wilds
 from torch import Tensor
 from torch.utils.data import DataLoader
 
+from my_utils.device import DeviceSingleton
+
 from .base import BaseRealDataset
 
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -49,8 +51,8 @@ class Waterbirds(BaseRealDataset):
             ]
         )
 
-        self.mean = torch.tensor(mean, device="cuda").reshape(1, 3, 1, 1)
-        self.std = torch.tensor(std, device="cuda").reshape(1, 3, 1, 1)
+        self.mean = torch.tensor(mean, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
+        self.std = torch.tensor(std, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
 
         self.full_ds = wilds.get_dataset(
             dataset="waterbirds", root_dir=f"{data_root}/waterbirds", download=True

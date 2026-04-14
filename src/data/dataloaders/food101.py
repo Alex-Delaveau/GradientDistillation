@@ -7,6 +7,8 @@ import torchvision.transforms as transforms
 from pyarrow import Tensor
 from torch.utils.data import DataLoader
 
+from my_utils.device import DeviceSingleton
+
 from .base import BaseRealDataset
 
 
@@ -40,8 +42,8 @@ class Food101(BaseRealDataset):
             ]
         )
 
-        self.mean = torch.tensor(mean, device="cuda").reshape(1, 3, 1, 1)
-        self.std = torch.tensor(std, device="cuda").reshape(1, 3, 1, 1)
+        self.mean = torch.tensor(mean, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
+        self.std = torch.tensor(std, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
 
         self.ds = torchvision.datasets.Food101(
             root=f"{data_root}/food101",

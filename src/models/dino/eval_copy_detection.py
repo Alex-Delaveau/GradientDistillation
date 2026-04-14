@@ -19,6 +19,7 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
+from my_utils.device import DeviceSingleton
 import utils
 import vision_transformer as vits
 from PIL import Image
@@ -164,7 +165,7 @@ def extract_features(image_list, model, args):
     )
     features = None
     for samples, index in utils.MetricLogger(delimiter="  ").log_every(data_loader, 10):
-        samples, index = samples.cuda(non_blocking=True), index.cuda(non_blocking=True)
+        samples, index = samples.to(DeviceSingleton.get(), non_blocking=True), index.to(DeviceSingleton.get(), non_blocking=True)
         feats = model.get_intermediate_layers(samples, n=1)[0].clone()
 
         cls_output_token = feats[:, 0, :]  #  [CLS] token
@@ -187,7 +188,7 @@ def extract_features(image_list, model, args):
         if dist.get_rank() == 0 and features is None:
             features = torch.zeros(len(data_loader.dataset), feats.shape[-1])
             if args.use_cuda:
-                features = features.cuda(non_blocking=True)
+                features = features.to(DeviceSingleton.get(), non_blocking=True)
 
         # get indexes from all processes
         y_all = torch.empty(
@@ -299,7 +300,7 @@ if __name__ == "__main__":
         print(f"Architecture {args.arch} non supported")
         sys.exit(1)
     if args.use_cuda:
-        model.cuda()
+        model.to(DeviceSingleton.get())
     model.eval()
     utils.load_pretrained_weights(
         model, args.pretrained_weights, args.checkpoint_key, args.arch, args.patch_size

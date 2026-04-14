@@ -26,6 +26,7 @@ import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
+from my_utils.device import DeviceSingleton
 import utils
 import vision_transformer as vits
 from PIL import Image
@@ -337,7 +338,7 @@ def train_dino(args):
         DINOHead(embed_dim, args.out_dim, args.use_bn_in_head),
     )
     # move networks to gpu
-    student, teacher = student.cuda(), teacher.cuda()
+    student, teacher = student.to(DeviceSingleton.get()), teacher.to(DeviceSingleton.get())
     # synchronize batch norms (if any)
     if utils.has_batchnorms(student):
         student = nn.SyncBatchNorm.convert_sync_batchnorm(student)
@@ -366,7 +367,7 @@ def train_dino(args):
         args.teacher_temp,
         args.warmup_teacher_temp_epochs,
         args.epochs,
-    ).cuda()
+    ).to(DeviceSingleton.get())
 
     # ============ preparing optimizer ... ============
     params_groups = utils.get_params_groups(student)
@@ -381,7 +382,7 @@ def train_dino(args):
     # for mixed precision training
     fp16_scaler = None
     if args.use_fp16:
-        fp16_scaler = torch.cuda.amp.GradScaler()
+        fp16_scaler = torch.amp.GradScaler(device=DeviceSingleton.get())
 
     # ============ init schedulers ... ============
     lr_schedule = utils.cosine_scheduler(
@@ -492,9 +493,9 @@ def train_one_epoch(
                 param_group["weight_decay"] = wd_schedule[it]
 
         # move images to gpu
-        images = [im.cuda(non_blocking=True) for im in images]
+        images = [im.to(DeviceSingleton.get(), non_blocking=True) for im in images]
         # teacher and student forward passes + compute dino loss
-        with torch.cuda.amp.autocast(fp16_scaler is not None):
+        with torch.amp.autocast(device_type=DeviceSingleton.get().type, enabled=fp16_scaler is not None):
             teacher_output = teacher(
                 images[:2]
             )  # only the 2 global views pass through the teacher
@@ -534,7 +535,8 @@ def train_one_epoch(
                 param_k.data.mul_(m).add_((1 - m) * param_q.detach().data)
 
         # logging
-        torch.cuda.synchronize()
+        if DeviceSingleton.get().type == "cuda":
+            torch.cuda.synchronize()
         metric_logger.update(loss=loss.item())
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
         metric_logger.update(wd=optimizer.param_groups[0]["weight_decay"])

@@ -11,7 +11,7 @@ from config import RandomRealsConfig
 from data.dataloaders import get_dataset
 from distillation.eval import Evaluator
 from models import get_model
-
+from my_utils import DeviceSingleton
 
 def eval_random_reals(cfg: RandomRealsConfig):
 
@@ -49,13 +49,13 @@ def eval_random_reals(cfg: RandomRealsConfig):
         test_dataset,
         shuffle=False,
         num_workers=cfg.workers_per_gpu,
-        batch_size=cfg.batch_size_per_gpu * torch.cuda.device_count(),
+        batch_size=cfg.batch_size_per_gpu * DeviceSingleton.device_count(),
     )
 
-    random_real_images = train_dataset.get_random_reals(ipc=cfg.ipc).cuda()
+    random_real_images = train_dataset.get_random_reals(ipc=cfg.ipc).to(DeviceSingleton.get())
     random_real_labels = torch.cat(
         [torch.tensor([c] * cfg.ipc) for c in range(train_dataset.num_classes)]
-    ).cuda()
+    ).to(DeviceSingleton.get())
 
     ds = TensorDataset(
         random_real_images.detach().clone(), random_real_labels.detach().clone()
@@ -63,10 +63,10 @@ def eval_random_reals(cfg: RandomRealsConfig):
 
     loader = DataLoader(ds, batch_size=min(100, len(random_real_images)), shuffle=True)
 
-    augmentor = AugBasic(crop_res=cfg.crop_res).cuda()
+    augmentor = AugBasic(crop_res=cfg.crop_res).to(DeviceSingleton.get())
 
     eval_model, num_feats = get_model(
-        cfg.model, distributed=torch.cuda.device_count() > 1
+        cfg.model, distributed=DeviceSingleton.is_distributed()
     )
 
     evaluator = Evaluator(

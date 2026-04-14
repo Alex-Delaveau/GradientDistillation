@@ -1,7 +1,7 @@
 
 import torch
 from tap import Tap
-
+from my_utils.device import DeviceSingleton
 
 class CentroidRealsCfg(Tap):
     dataset: str
@@ -12,7 +12,7 @@ class CentroidRealsCfg(Tap):
     real_res: int = 256
     crop_res: int = 224
 
-    device_count: int = torch.cuda.device_count()
+    device_count: int = DeviceSingleton.device_count()
 
     skip_if_exists: bool = True
 

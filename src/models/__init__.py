@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 from transformers import AutoModel, pipeline
 
+from my_utils.device import DeviceSingleton
+
 from .dino import vision_transformer
 from .dino.utils import load_pretrained_weights
 from .lambda_layer import LambdaLayer
@@ -54,23 +56,23 @@ def get_model(name: str, distributed: bool) -> Tuple[nn.Module, int]:
             num_feat = 768
 
         case "clip_resnet50":
-            model = clip.load("RN50")[0].visual.float().cuda()
+            model = clip.load("RN50")[0].visual.float().to(DeviceSingleton.get())
             num_feat = 1024
 
         case "clip_resnet101":
-            model = clip.load("RN101")[0].visual.float().cuda()
+            model = clip.load("RN101")[0].visual.float().to(DeviceSingleton.get())
             num_feat = 512
 
         case "clip_vitb32":
-            model = clip.load("ViT-B/32")[0].visual.float().cuda()
+            model = clip.load("ViT-B/32")[0].visual.float().to(DeviceSingleton.get())
             num_feat = 512
 
         case "clip_vitb":
-            model = clip.load("ViT-B/16")[0].visual.float().cuda()
+            model = clip.load("ViT-B/16")[0].visual.float().to(DeviceSingleton.get())
             num_feat = 512
 
         case "clip_vitl":
-            model = clip.load("ViT-L/14")[0].visual.float().cuda()
+            model = clip.load("ViT-L/14")[0].visual.float().to(DeviceSingleton.get())
             num_feat = 768
 
         case "eva02_vitl":
@@ -115,7 +117,7 @@ def get_model(name: str, distributed: bool) -> Tuple[nn.Module, int]:
 
     if distributed:
         model = nn.DataParallel(model)
-    model = model.cuda()
+    model = model.to(DeviceSingleton.get())
     # this is to disable running stats in batchnorm, dropout, etc
     model.eval()
 
@@ -124,7 +126,7 @@ def get_model(name: str, distributed: bool) -> Tuple[nn.Module, int]:
 
 def get_fc(num_feats: int, num_classes: int, distributed: bool):
 
-    fc = LinearClassifier(dim=num_feats, num_labels=num_classes).cuda()
+    fc = LinearClassifier(dim=num_feats, num_labels=num_classes).to(DeviceSingleton.get())
 
     if distributed:
         fc = nn.DataParallel(fc)

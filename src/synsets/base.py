@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 from einops import rearrange
 from torch import Tensor
-
+from my_utils.device import DeviceSingleton
 
 class BaseDistilledDataset:
     optimizer: torch.optim.Optimizer
@@ -14,13 +14,13 @@ class BaseDistilledDataset:
     def __init__(self):
         self.color_correlation_svd_sqrt = torch.tensor(
             [[0.26, 0.09, 0.02], [0.27, 0.00, -0.05], [0.27, -0.09, 0.03]]
-        ).cuda()
+        ).to(DeviceSingleton.get())
 
         self.max_norm_svd_sqrt = torch.max(
             torch.linalg.norm(self.color_correlation_svd_sqrt, axis=0)
         )
 
-        self.color_mean = torch.tensor([0.48, 0.46, 0.41]).cuda()
+        self.color_mean = torch.tensor([0.48, 0.46, 0.41]).to(DeviceSingleton.get())
 
     def get_data(self) -> Tuple[Tensor, Tensor]:
         raise NotImplementedError

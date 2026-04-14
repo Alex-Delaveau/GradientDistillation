@@ -13,6 +13,7 @@ from data.dataloaders import (
     get_dataset,
 )
 from models import get_model
+from my_utils import DeviceSingleton
 
 
 @torch.no_grad()
@@ -28,7 +29,7 @@ def get_closest_images(
 
     real_neighbors = []
     for x, y in tqdm(zip(syn_embeddings, syn_labels), total=len(syn_embeddings)):
-        real_images = train_dataset.get_single_class(y.item()).cuda()
+        real_images = train_dataset.get_single_class(y.item()).to(DeviceSingleton.get())
         normalized_real_images = train_dataset.normalize(real_images)
         cropped_real_images = crop(normalized_real_images)
 
@@ -89,11 +90,11 @@ def closest_reals(cfg: NeighborsCfg):
     )
 
     syn_set = torch.load(syn_set_files[0])
-    syn_images = syn_set["images"].cuda()
-    syn_labels = syn_set["labels"].cuda()
+    syn_images = syn_set["images"].to(DeviceSingleton.get())
+    syn_labels = syn_set["labels"].to(DeviceSingleton.get())
 
     eval_model, num_feats = get_model(
-        cfg.model, distributed=torch.cuda.device_count() > 1
+        cfg.model, distributed=DeviceSingleton.is_distributed()
     )
 
     real_neighbors = get_closest_images(

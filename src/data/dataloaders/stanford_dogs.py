@@ -12,6 +12,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets.utils import download_url, list_dir
 
+from my_utils.device import DeviceSingleton
+
 from .base import BaseRealDataset
 
 
@@ -185,8 +187,8 @@ class StanfordDogs(BaseRealDataset):
             ]
         )
 
-        self.mean = torch.tensor(mean, device="cuda").reshape(1, 3, 1, 1)
-        self.std = torch.tensor(std, device="cuda").reshape(1, 3, 1, 1)
+        self.mean = torch.tensor(mean, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
+        self.std = torch.tensor(std, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
 
     def __len__(self):
         return len(self._flat_breed_images)

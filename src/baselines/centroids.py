@@ -12,6 +12,7 @@ from data.dataloaders import (
 )
 from models import get_model
 
+from my_utils import DeviceSingleton
 
 @torch.no_grad()
 def get_centroid_images(
@@ -22,7 +23,7 @@ def get_centroid_images(
     crop = kornia.augmentation.CenterCrop(224)
     real_neighbors = []
     for y in tqdm(labels):
-        real_images = train_dataset.get_single_class(y.item()).cuda()
+        real_images = train_dataset.get_single_class(y.item()).to(DeviceSingleton.get())
 
         normalized_real_images = train_dataset.normalize(real_images)
         cropped_real_images = crop(normalized_real_images)
@@ -63,7 +64,7 @@ def main(cfg: CentroidRealsCfg):
     )
 
     eval_model, num_feats = get_model(
-        cfg.model, distributed=torch.cuda.device_count() > 1
+        cfg.model, distributed=DeviceSingleton.is_distributed()
     )
 
     labels = torch.cat(
@@ -72,7 +73,7 @@ def main(cfg: CentroidRealsCfg):
             for c in range(train_dataset.num_classes)
         ],
         dim=0,
-    ).cuda()
+    ).to(DeviceSingleton.get())
 
     real_neighbors = get_centroid_images(
         labels=labels, model=eval_model, train_dataset=train_dataset

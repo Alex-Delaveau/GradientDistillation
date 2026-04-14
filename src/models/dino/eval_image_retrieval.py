@@ -20,6 +20,7 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
+from my_utils.device import DeviceSingleton
 import utils
 import vision_transformer as vits
 from eval_knn import extract_features
@@ -184,7 +185,7 @@ if __name__ == "__main__":
         print(f"Architecture {args.arch} non supported")
         sys.exit(1)
     if args.use_cuda:
-        model.cuda()
+        model.to(DeviceSingleton.get())
     model.eval()
 
     # load pretrained weights

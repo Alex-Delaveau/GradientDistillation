@@ -5,7 +5,7 @@ import torch
 import torch.utils.data
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
-
+from my_utils.device import DeviceSingleton
 
 class BaseRealDataset(Dataset):
 
@@ -40,7 +40,7 @@ class BaseRealDataset(Dataset):
                 images[y].append(x)
 
         images = [torch.cat(l) for l in images]
-        images = torch.cat(images).cuda()
+        images = torch.cat(images).to(DeviceSingleton.get())
 
         return images
 

@@ -32,6 +32,8 @@ import torch.distributed as dist
 from PIL import ImageFilter, ImageOps
 from torch import nn
 
+from my_utils.device import DeviceSingleton
+
 
 class GaussianBlur(object):
     """
@@ -249,7 +251,7 @@ def fix_random_seeds(seed=31):
     Fix random seeds.
     """
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    DeviceSingleton.manual_seed(seed)
     np.random.seed(seed)
 
 
@@ -277,7 +279,7 @@ class SmoothedValue(object):
         """
         if not is_dist_avail_and_initialized():
             return
-        t = torch.tensor([self.count, self.total], dtype=torch.float64, device="cuda")
+        t = torch.tensor([self.count, self.total], dtype=torch.float64, device=DeviceSingleton.get())
         dist.barrier()
         dist.all_reduce(t)
         t = t.tolist()
@@ -772,18 +774,13 @@ class PCA:
                 x -= self.mean
             return np.dot(self.dvt, x.T).T
 
-        # input is from torch and is on GPU
-        if x.is_cuda:
-            if self.mean is not None:
-                x -= torch.cuda.FloatTensor(self.mean)
-            return torch.mm(
-                torch.cuda.FloatTensor(self.dvt), x.transpose(0, 1)
-            ).transpose(0, 1)
-
-        # input if from torch, on CPU
+        # input is from torch
+        device = x.device
         if self.mean is not None:
-            x -= torch.FloatTensor(self.mean)
-        return torch.mm(torch.FloatTensor(self.dvt), x.transpose(0, 1)).transpose(0, 1)
+            x -= torch.tensor(self.mean, device=device, dtype=torch.float32)
+        return torch.mm(
+            torch.tensor(self.dvt, device=device, dtype=torch.float32), x.transpose(0, 1)
+        ).transpose(0, 1)
 
 
 def compute_ap(ranks, nres):

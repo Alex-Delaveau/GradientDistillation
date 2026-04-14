@@ -5,6 +5,7 @@ from torch import Tensor
 
 from config import DistillCfg
 from data.dataloaders import BaseRealDataset
+from my_utils.device import DeviceSingleton
 from my_utils.log_utils import log_images
 
 from .base import BaseDistilledDataset
@@ -34,14 +35,14 @@ class PyramidDataset(BaseDistilledDataset):
                 for c in range(self.train_dataset.num_classes)
             ],
             dim=0,
-        ).cuda()
+        ).to(DeviceSingleton.get())
 
         num_images = self.cfg.ipc * self.train_dataset.num_classes
 
         pyramid = []
         res = 1
         while res <= self.cfg.pyramid_start_res:
-            level = torch.randn((num_images, 3, res, res), device="cuda")
+            level = torch.randn((num_images, 3, res, res), device=DeviceSingleton.get())
             if self.cfg.init_mode == "zero":
                 level = level * 0
             pyramid.insert(0, level)
@@ -95,7 +96,7 @@ class PyramidDataset(BaseDistilledDataset):
             new_layer = new_layer / old_len
         else:
             new_layer = (
-                torch.randn((num_images, 3, new_res, new_res), device="cuda") / new_len
+                torch.randn((num_images, 3, new_res, new_res), device=DeviceSingleton.get()) / new_len
             )
 
         self.pyramid.insert(0, new_layer)

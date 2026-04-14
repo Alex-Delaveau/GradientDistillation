@@ -22,6 +22,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import requests
+from my_utils.device import DeviceSingleton
 import skimage.io
 import torch
 import torch.nn as nn
@@ -139,7 +140,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = DeviceSingleton.get()
     # build model
     model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0)
     for p in model.parameters():

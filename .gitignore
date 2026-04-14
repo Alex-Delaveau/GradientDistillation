@@ -8,5 +8,9 @@ src/wandb
 .ipynb_checkpoints
 
 *.egg-info
-wandb
 *.log
+
+
+wandb
+baselines/results
+data/datasets
