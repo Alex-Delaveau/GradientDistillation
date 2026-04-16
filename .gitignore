@@ -13,7 +13,4 @@ src/wandb
 wandb
 baselines/results
 data/datasets
-logged_files/*
-!logged_files/distillation/
-logged_files/distillation/*
-!logged_files/distillation/fish4knowledge
+logged_files
