@@ -3,14 +3,14 @@ import random
 import signal
 import sys
 import types
-from typing import Tuple
+from typing import Counter, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.amp import autocast
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from tqdm import tqdm
 
 import wandb
@@ -36,6 +36,8 @@ class LinearGM:
             self.cfg.run_name,
         )
 
+
+
         self.train_dataset, self.test_dataset = get_dataset(
             name=self.cfg.dataset,
             res=self.cfg.real_res,
@@ -48,6 +50,17 @@ class LinearGM:
             cfg.ipc * cfg.augs_per_batch * self.train_dataset.num_classes
         )
 
+        targets = self.train_dataset.targets.numpy()
+        class_counts = np.bincount(targets, minlength=self.train_dataset.num_classes)
+        class_weights = 1.0 / class_counts
+        sample_weights = torch.from_numpy(class_weights[targets]).double()
+        train_sampler = WeightedRandomSampler(
+            weights=sample_weights,
+            num_samples=len(self.train_dataset),
+            replacement=True,
+        )
+
+
         self.test_loader = DataLoader(
             self.test_dataset,
             shuffle=False,
@@ -57,7 +70,7 @@ class LinearGM:
         )
         self.train_loader = DataLoader(
             self.train_dataset,
-            shuffle=True,
+            sampler=train_sampler,
             num_workers=cfg.num_workers,
             batch_size=self.real_batch_size,
             pin_memory=True,

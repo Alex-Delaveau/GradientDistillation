@@ -266,14 +266,27 @@ if __name__ == "__main__":
 
     model_dir = os.path.join("logged_files", cfg.job_tag, cfg.dataset, cfg.model)
     print("Searching for saved data in {}".format(model_dir))
-    syn_set_files = sorted(
-        list(glob.glob(os.path.join(model_dir, "**", "data.pth"), recursive=True))
-    )
-    if len(syn_set_files) == 0:
-        print(f"No data found at {model_dir}.")
-        print("Exiting...")
-        exit()
+
+    if cfg.run_name is not None:
+        candidate = os.path.join(model_dir, cfg.run_name, "data.pth")
+        if not os.path.exists(candidate):
+            print(f"Run '{cfg.run_name}' not found at {candidate}.")
+            print("Exiting...")
+            exit()
+        syn_set_files = [candidate]
+    else:
+        syn_set_files = sorted(
+            glob.glob(os.path.join(model_dir, "**", "data.pth"), recursive=True),
+            key=os.path.getmtime,
+            reverse=True,
+        )
+        if len(syn_set_files) == 0:
+            print(f"No data found at {model_dir}.")
+            print("Exiting...")
+            exit()
+
     run_dir = "/".join(syn_set_files[0].split("/")[:-1])
+    print(f"Using run: {run_dir}")
 
     save_dir = os.path.join(run_dir, "eval")
     save_file = os.path.join(save_dir, "{}.pth".format(cfg.eval_model))

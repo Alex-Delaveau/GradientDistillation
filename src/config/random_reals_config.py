@@ -9,7 +9,7 @@ class RandomRealsConfig(Tap):
     random_seed: int
     data_root: str = "data/datasets"
     workers_per_gpu: int = 16
-    batch_size_per_gpu: int = 128
+    batch_size_per_gpu: int = 256
     real_res: int = 256
     crop_res: int = 224
     eval_epochs: int = 1000

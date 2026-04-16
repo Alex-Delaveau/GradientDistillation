@@ -30,3 +30,5 @@ class EvalCfg(Tap):
     checkpoint_it: int = 100
 
     job_id: str | None = None
+
+    run_name: str | None = None

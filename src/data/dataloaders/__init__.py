@@ -9,7 +9,7 @@ from .imagenet_susbset import ImageNetSubset
 from .spawrious import Spawrious
 from .stanford_dogs import StanfordDogs
 from .waterbirds import Waterbirds
-
+from .fish import Fish4Knowledge
 
 def get_dataset(
     name: str,
@@ -166,6 +166,22 @@ def get_dataset(
                 split="val",
                 res=res,
                 subset_name=name,
+                crop_res=crop_res,
+                crop_mode="center",
+                data_root=data_root,
+            )
+        
+        case "fish4knowledge":
+            train_dataset = Fish4Knowledge(
+                split="train",
+                res=res,
+                crop_res=res,
+                crop_mode=train_crop_mode,
+                data_root=data_root,
+            )
+            test_dataset = Fish4Knowledge(
+                split="test",
+                res=res,
                 crop_res=crop_res,
                 crop_mode="center",
                 data_root=data_root,
