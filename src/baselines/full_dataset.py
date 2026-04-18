@@ -43,17 +43,17 @@ def eval_full_dataset(cfg: FullDatasetCfg):
     test_loader = DataLoader(
         test_dataset,
         shuffle=False,
-        num_workers=cfg.workers_per_gpu * DeviceSingleton.device_count(),
+        num_workers=0,
         batch_size=cfg.batch_size_per_gpu * DeviceSingleton.device_count(),
     )
     train_loader = DataLoader(
         train_dataset,
         shuffle=True,
-        num_workers=cfg.workers_per_gpu * DeviceSingleton.device_count(),
+        num_workers=0,
         batch_size=cfg.batch_size_per_gpu * DeviceSingleton.device_count(),
         pin_memory=True,
-        persistent_workers=True,
-        prefetch_factor=4,
+        # persistent_workers=True,
+        # prefetch_factor=4,
     )
 
     augmentor = AugBasic(crop_res=cfg.crop_res).to(DeviceSingleton.get())

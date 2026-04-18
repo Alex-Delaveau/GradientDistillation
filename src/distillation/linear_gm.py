@@ -53,7 +53,7 @@ class LinearGM:
         targets = self.train_dataset.targets.numpy()
         class_counts = np.bincount(targets, minlength=self.train_dataset.num_classes)
         class_weights = 1.0 / class_counts
-        sample_weights = torch.from_numpy(class_weights[targets]).double()
+        sample_weights = torch.from_numpy(class_weights[targets]).double().cpu()
         train_sampler = WeightedRandomSampler(
             weights=sample_weights,
             num_samples=len(self.train_dataset),

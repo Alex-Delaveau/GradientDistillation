@@ -16,7 +16,7 @@ import torch.nn as nn
 from torch import Tensor
 from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, TensorDataset
-from torchmetrics.classification import MulticlassAccuracy
+from torchmetrics.classification import MulticlassAccuracy, MulticlassF1Score
 from tqdm import tqdm
 
 from augmentation import AugBasic
@@ -43,6 +43,8 @@ class Evaluator:
         num_classes: int,
         num_eval: int,
         random_seed: int = 3407,
+        top1_metric: MulticlassAccuracy | MulticlassF1Score | None = None,
+        top5_metric: MulticlassAccuracy | MulticlassF1Score | None = None,
     ):
         self.train_loader = train_loader
         self.test_loader = test_loader
@@ -58,6 +60,8 @@ class Evaluator:
         self.num_classes = num_classes
         self.num_eval = num_eval
         self.random_seed = random_seed
+        self.top1_metric = top1_metric
+        self.top5_metric = top5_metric
 
         self.top1_list = []
         self.top5_list = []
@@ -167,14 +171,8 @@ class Evaluator:
 
     @torch.no_grad()
     def evaluate(self):
-        num_classes = self.test_loader.dataset.num_classes
-        top1_metric = MulticlassAccuracy(
-            average="micro", num_classes=num_classes, top_k=1
-        ).to(DeviceSingleton.get())
-        if self.test_loader.dataset.num_classes >= 5:
-            top5_metric = MulticlassAccuracy(
-                average="micro", num_classes=num_classes, top_k=5
-            ).to(DeviceSingleton.get())
+        
+
 
         for x, y in tqdm(self.test_loader, desc="Evaluating Linear Head", leave=False):
             x = x.to(DeviceSingleton.get(), non_blocking=True)
@@ -184,14 +182,14 @@ class Evaluator:
 
             out = self.fc(z)
 
-            top1_metric.update(out, y)
+            self.top1_metric.update(out, y)
 
             if self.test_loader.dataset.num_classes >= 5:
-                top5_metric.update(out, y)
+                self.top5_metric.update(out, y)
 
-        top1 = top1_metric.compute().item()
+        top1 = self.top1_metric.compute().item()
         if self.test_loader.dataset.num_classes >= 5:
-            top5 = top5_metric.compute().item()
+            top5 = self.top5_metric.compute().item()
         else:
             top5 = 0.0
 
@@ -332,6 +330,27 @@ if __name__ == "__main__":
     augmentor = AugBasic(crop_res=cfg.crop_res).to(DeviceSingleton.get())
     augmentor = augmentor.to(DeviceSingleton.get())
 
+
+    num_classes = test_loader.dataset.num_classes
+
+
+    top1_metric = MulticlassAccuracy(
+            average="micro", num_classes=num_classes, top_k=1
+        ).to(DeviceSingleton.get())
+    top5_metric = None
+    if test_loader.dataset.num_classes >= 5:
+        top5_metric = MulticlassAccuracy(
+            average="micro", num_classes=num_classes, top_k=5
+        ).to(DeviceSingleton.get())
+    if cfg.do_f1:
+        top1_metric = MulticlassF1Score(
+            average="micro", num_classes=num_classes
+        ).to(DeviceSingleton.get())
+        if test_loader.dataset.num_classes >= 5:
+            top5_metric = MulticlassF1Score(
+                average="micro", num_classes=num_classes, top_k=5
+            ).to(DeviceSingleton.get())
+
     evaluator = Evaluator(
         train_loader=loader,
         test_loader=test_loader,
@@ -346,6 +365,8 @@ if __name__ == "__main__":
         num_feats=num_feats,
         num_classes=train_dataset.num_classes,
         num_eval=cfg.num_eval,
+        top1_metric=top1_metric,
+        top5_metric=top5_metric,
     )
 
     evaluator.train_and_eval()

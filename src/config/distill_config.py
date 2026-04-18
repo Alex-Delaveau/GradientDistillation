@@ -1,15 +1,12 @@
 from typing import Literal
 
 import torch
-from tap import Tap
-from my_utils.device import DeviceSingleton
+from .base_config import BaseCfg
 
-class DistillCfg(Tap):
-    dataset: str
-    model: str
+
+class DistillCfg(BaseCfg):
     num_workers: int = 16
 
-    data_root: str = "data/datasets"
     job_tag: str = "distillation"
 
     ipc: int = 1
@@ -32,13 +29,8 @@ class DistillCfg(Tap):
 
     checkpoint_it: int = 100
 
-    skip_if_exists: bool = True
-
-    syn_res: int = 256
-    real_res: int = 256
-    crop_res: int = 224
+    syn_res: int = 126
+    real_res: int = 126
+    crop_res: int = 126
 
     train_crop_mode: Literal["center", "random"] = "random"
-
-    device_count: int = DeviceSingleton.device_count()
-

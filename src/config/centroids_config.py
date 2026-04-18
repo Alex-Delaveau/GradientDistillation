@@ -1,20 +1,11 @@
+from .base_config import BaseCfg
 
-import torch
-from tap import Tap
-from my_utils.device import DeviceSingleton
 
-class CentroidRealsCfg(Tap):
-    dataset: str
-    model: str
-    data_root: str = "data/datasets"
+class CentroidRealsCfg(BaseCfg):
     num_workers: int = 16
     real_batch_size: int = 100
     real_res: int = 256
     crop_res: int = 224
-
-    device_count: int = DeviceSingleton.device_count()
-
-    skip_if_exists: bool = True
 
     job_tag: str | None = None
     job_id: str | None = None

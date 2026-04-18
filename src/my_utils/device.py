@@ -9,7 +9,7 @@ class DeviceSingleton:
         if cls._device is None:
             cls._device = torch.device(
                 "cuda" if torch.cuda.is_available() else
-                "mps" if torch.backends.mps.is_available() else
+                # "mps" if torch.backends.mps.is_available() else
                 "cpu"
             )
         return cls._device

@@ -1,3 +1,4 @@
+from .base_config import BaseCfg, EvalTrainCfg
 from .centroids_config import CentroidRealsCfg
 from .distill_config import DistillCfg
 from .eval_config import EvalCfg
