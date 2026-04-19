@@ -5,6 +5,7 @@ import kornia
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
+from torchmetrics.classification import MulticlassAccuracy, MulticlassF1Score
 
 from augmentation import AugBasic
 from config import RandomRealsConfig
@@ -12,6 +13,28 @@ from data.dataloaders import get_dataset
 from distillation.eval import Evaluator
 from models import get_model
 from my_utils import DeviceSingleton
+
+def _build_metrics(num_classes: int, do_f1: bool):
+    """Builds top-1 / top-5 metrics, mirroring eval.py's logic."""
+    device = DeviceSingleton.get()
+
+    if do_f1:
+        top1_metric = MulticlassF1Score(
+            average="micro", num_classes=num_classes
+        ).to(device)
+        top5_metric = (
+            MulticlassF1Score(average="micro", num_classes=num_classes, top_k=5).to(device)
+            if num_classes >= 5 else None
+        )
+    else:
+        top1_metric = MulticlassAccuracy(
+            average="micro", num_classes=num_classes, top_k=1
+        ).to(device)
+        top5_metric = (
+            MulticlassAccuracy(average="micro", num_classes=num_classes, top_k=5).to(device)
+            if num_classes >= 5 else None
+        )
+    return top1_metric, top5_metric
 
 def eval_random_reals(cfg: RandomRealsConfig):
 
@@ -69,6 +92,9 @@ def eval_random_reals(cfg: RandomRealsConfig):
         cfg.model, distributed=DeviceSingleton.is_distributed()
     )
 
+    num_classes = train_dataset.num_classes
+    top1_metric, top5_metric = _build_metrics(num_classes, cfg.do_f1)
+
     evaluator = Evaluator(
         train_loader=loader,
         test_loader=test_loader,
@@ -84,6 +110,8 @@ def eval_random_reals(cfg: RandomRealsConfig):
         num_classes=train_dataset.num_classes,
         num_eval=1,
         random_seed=cfg.random_seed,
+        top1_metric=top1_metric,
+        top5_metric=top5_metric,
     )
 
     evaluator.train_and_eval()

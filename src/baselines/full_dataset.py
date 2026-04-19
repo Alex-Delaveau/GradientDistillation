@@ -11,6 +11,29 @@ from distillation.eval import Evaluator
 from models import get_fc, get_model
 from my_utils.device import DeviceSingleton
 
+from torchmetrics.classification import MulticlassAccuracy, MulticlassF1Score
+
+def _build_metrics(num_classes: int, do_f1: bool):
+    """Builds top-1 / top-5 metrics, mirroring eval.py's logic."""
+    device = DeviceSingleton.get()
+
+    if do_f1:
+        top1_metric = MulticlassF1Score(
+            average="micro", num_classes=num_classes
+        ).to(device)
+        top5_metric = (
+            MulticlassF1Score(average="micro", num_classes=num_classes, top_k=5).to(device)
+            if num_classes >= 5 else None
+        )
+    else:
+        top1_metric = MulticlassAccuracy(
+            average="micro", num_classes=num_classes, top_k=1
+        ).to(device)
+        top5_metric = (
+            MulticlassAccuracy(average="micro", num_classes=num_classes, top_k=5).to(device)
+            if num_classes >= 5 else None
+        )
+    return top1_metric, top5_metric
 
 def eval_full_dataset(cfg: FullDatasetCfg):
     torch.multiprocessing.set_sharing_strategy("file_system")
@@ -62,6 +85,9 @@ def eval_full_dataset(cfg: FullDatasetCfg):
         cfg.model, distributed=DeviceSingleton.is_distributed()
     )
 
+    num_classes = train_dataset.num_classes
+    top1_metric, top5_metric = _build_metrics(num_classes, cfg.do_f1)
+
     evaluator = Evaluator(
         train_loader=train_loader,
         test_loader=test_loader,
@@ -76,6 +102,8 @@ def eval_full_dataset(cfg: FullDatasetCfg):
         num_feats=num_feats,
         num_classes=train_dataset.num_classes,
         num_eval=cfg.num_eval,
+        top1_metric=top1_metric,
+        top5_metric=top5_metric,
     )
 
     evaluator.train_and_eval()

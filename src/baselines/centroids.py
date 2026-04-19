@@ -3,6 +3,7 @@ import os
 import kornia
 import torch
 from torch import Tensor, nn
+from torchmetrics.classification import MulticlassAccuracy, MulticlassF1Score
 from tqdm import tqdm
 
 from config import CentroidRealsCfg
@@ -13,6 +14,29 @@ from data.dataloaders import (
 from models import get_model
 
 from my_utils import DeviceSingleton
+
+def _build_metrics(num_classes: int, do_f1: bool):
+    """Builds top-1 / top-5 metrics, mirroring eval.py's logic."""
+    device = DeviceSingleton.get()
+
+    if do_f1:
+        top1_metric = MulticlassF1Score(
+            average="micro", num_classes=num_classes
+        ).to(device)
+        top5_metric = (
+            MulticlassF1Score(average="micro", num_classes=num_classes, top_k=5).to(device)
+            if num_classes >= 5 else None
+        )
+    else:
+        top1_metric = MulticlassAccuracy(
+            average="micro", num_classes=num_classes, top_k=1
+        ).to(device)
+        top5_metric = (
+            MulticlassAccuracy(average="micro", num_classes=num_classes, top_k=5).to(device)
+            if num_classes >= 5 else None
+        )
+    return top1_metric, top5_metric
+
 
 @torch.no_grad()
 def get_centroid_images(

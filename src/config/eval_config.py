@@ -8,8 +8,8 @@ class EvalCfg(EvalTrainCfg):
     job_tag: str = "distillation"
     num_workers: int = 0
     real_batch_size: int = 100
-    real_res: int = 64
-    crop_res: int = 64
+    real_res: int = 256
+    crop_res: int = 224
     num_eval: int = 5
     train_crop_mode: Literal["center", "random"] = "random"
 

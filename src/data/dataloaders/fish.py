@@ -24,8 +24,8 @@ class Fish4Knowledge(BaseRealDataset):
     def __init__(
     self,
     split: str = "train",
-    res: int = 64,
-    crop_res: int = 64,
+    res: int = 126,
+    crop_res: int = 126,
     crop_mode: Literal["center", "random"] = "center",
     data_root: str = "data/datasets",
     seed: int = 42,

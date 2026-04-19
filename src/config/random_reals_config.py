@@ -12,3 +12,4 @@ class RandomRealsConfig(EvalTrainCfg):
     job_id: str | None = None
 
     ipc: int = 1
+    do_f1: bool = False

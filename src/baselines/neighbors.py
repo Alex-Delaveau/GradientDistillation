@@ -23,7 +23,7 @@ def get_closest_images(
     model: nn.Module,
     train_dataset: BaseRealDataset,
 ) -> Tensor:
-    crop = kornia.augmentation.CenterCrop(224)
+    crop = kornia.augmentation.CenterCrop(cfg.crop_res)
 
     syn_embeddings = model(crop(train_dataset.normalize(syn_images)))
 

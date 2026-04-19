@@ -29,8 +29,8 @@ class DistillCfg(BaseCfg):
 
     checkpoint_it: int = 100
 
-    syn_res: int = 126
-    real_res: int = 126
-    crop_res: int = 126
+    syn_res: int = 256 
+    real_res: int = 256 
+    crop_res: int = 224 
 
     train_crop_mode: Literal["center", "random"] = "random"

@@ -9,3 +9,5 @@ class CentroidRealsCfg(BaseCfg):
 
     job_tag: str | None = None
     job_id: str | None = None
+    
+    do_f1: bool = False
