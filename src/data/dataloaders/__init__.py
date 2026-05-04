@@ -1,5 +1,6 @@
 from typing import Literal, Tuple
 
+
 from .artbench import ArtBench
 from .base import BaseRealDataset
 from .cub2011 import Cub2011
@@ -10,6 +11,7 @@ from .spawrious import Spawrious
 from .stanford_dogs import StanfordDogs
 from .waterbirds import Waterbirds
 from .fish import Fish4Knowledge
+from .aqua20 import Aqua20
 
 def get_dataset(
     name: str,
@@ -180,6 +182,22 @@ def get_dataset(
                 data_root=data_root,
             )
             test_dataset = Fish4Knowledge(
+                split="test",
+                res=res,
+                crop_res=crop_res,
+                crop_mode="center",
+                data_root=data_root,
+            )
+        
+        case "aqua20":
+            train_dataset = Aqua20(
+                split="train",
+                res=res,
+                crop_res=res,
+                crop_mode=train_crop_mode,
+                data_root=data_root,
+            )
+            test_dataset = Aqua20(
                 split="test",
                 res=res,
                 crop_res=crop_res,
