@@ -4,6 +4,7 @@ from data.dataloaders import BaseRealDataset
 from .base import BaseDistilledDataset
 from .pixels import PixelDataset
 from .pyramid import PyramidDataset
+from .physics import PhysicsDataset
 
 
 def get_distilled_dataset(
@@ -17,6 +18,10 @@ def get_distilled_dataset(
 
         case "pyramid":
             ds = PyramidDataset(train_dataset=train_dataset, cfg=cfg)
+        
+        case "physics":
+            ds = PhysicsDataset(train_dataset=train_dataset, cfg=cfg)
+
 
         case _:
             raise NotImplementedError(

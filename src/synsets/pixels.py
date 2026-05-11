@@ -65,7 +65,7 @@ class PixelDataset(BaseDistilledDataset):
                     self.cfg.syn_res,
                     self.cfg.syn_res,
                 )
-            ).to(DeviceSingleton.get())
+            ).to(DeviceSingleton.get()) #[ipc * num_classes, 3, H, W]
 
         syn_images.requires_grad_(True)
 
