@@ -14,7 +14,7 @@ class DistillCfg(BaseCfg):
     iterations: int = 5000
     augs_per_batch: int = 10
 
-    distill_mode: Literal["pixel", "pyramid", "physics"] = "pyramid"
+    distill_mode: Literal["pixel", "pyramid", "physics", "physics_pyramid"] = "pyramid"
     aug_mode: Literal["standard", "none"] = "standard"
     decorrelate_color: bool = True
 

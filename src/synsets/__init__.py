@@ -5,6 +5,7 @@ from .base import BaseDistilledDataset
 from .pixels import PixelDataset
 from .pyramid import PyramidDataset
 from .physics import PhysicsDataset
+from .physics_pyramid import PhysicsPyramidDataset
 
 
 def get_distilled_dataset(
@@ -18,10 +19,12 @@ def get_distilled_dataset(
 
         case "pyramid":
             ds = PyramidDataset(train_dataset=train_dataset, cfg=cfg)
-        
+
         case "physics":
             ds = PhysicsDataset(train_dataset=train_dataset, cfg=cfg)
 
+        case "physics_pyramid":
+            ds = PhysicsPyramidDataset(train_dataset=train_dataset, cfg=cfg)
 
         case _:
             raise NotImplementedError(
