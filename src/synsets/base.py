@@ -24,6 +24,11 @@ class BaseDistilledDataset:
 
     def get_data(self) -> Tuple[Tensor, Tensor]:
         raise NotImplementedError
+    
+    def get_to_save(self) -> dict:
+        return {
+            "syn_data": self.get_data()
+        }
 
     def log_images(self, step: int = None):
         raise NotImplementedError

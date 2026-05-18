@@ -62,8 +62,8 @@ class PhysicsDataset(BaseDistilledDataset):
         # lr séparés : T et B bougent typiquement bien plus lentement que J
         param_groups = [
             {"params": [self.syn_J], "lr": self.cfg.lr},
-            {"params": [self.syn_T], "lr": getattr(self.cfg, "lr_T", self.cfg.lr * 0.1)},
-            {"params": [self.syn_B], "lr": getattr(self.cfg, "lr_B", self.cfg.lr * 0.1)},
+            {"params": [self.syn_T], "lr": getattr(self.cfg, "lr_T", self.cfg.lr)},
+            {"params": [self.syn_B], "lr": getattr(self.cfg, "lr_B", self.cfg.lr)},
         ]
         return torch.optim.Adam(param_groups)
 
@@ -83,6 +83,15 @@ class PhysicsDataset(BaseDistilledDataset):
         # Rendu Koschmieder différentiable
         I = J * T + (1.0 - T) * B
         return I, self.syn_labels
+    
+    def get_to_save(self) -> dict:
+        data = self.get_data()
+        save_dict = self.get_save_dict()
+        return {
+            "syn_lr": self.syn_lr,
+            "syn_data": data,
+            "save_dict": save_dict
+        }
 
     def log_images(self, step: int = None):
         with torch.no_grad():

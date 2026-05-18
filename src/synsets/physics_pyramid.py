@@ -13,7 +13,7 @@ from .base import BaseDistilledDataset
 
 class PhysicsPyramidDataset(BaseDistilledDataset):
     """
-    Koschmieder model (I = J*T + (1-T)*B) where J is encoded as a
+    Atmospheric model (I = J*T + (1-T)*B) where J is encoded as a
     coarse-to-fine pyramid (like PyramidDataset) instead of a single
     full-resolution tensor.
     """
@@ -63,8 +63,8 @@ class PhysicsPyramidDataset(BaseDistilledDataset):
         return (pyramid_J, syn_T, syn_B), syn_labels
 
     def init_optimizer(self):
-        lr_T = getattr(self.cfg, "lr_T", self.cfg.lr * 0.1)
-        lr_B = getattr(self.cfg, "lr_B", self.cfg.lr * 0.1)
+        lr_T = getattr(self.cfg, "lr_T", self.cfg.lr)
+        lr_B = getattr(self.cfg, "lr_B", self.cfg.lr)
         param_groups = [
             {"params": self.pyramid_J, "lr": self.cfg.lr},
             {"params": [self.syn_T], "lr": lr_T},
@@ -143,7 +143,19 @@ class PhysicsPyramidDataset(BaseDistilledDataset):
         T = torch.sigmoid(self.syn_T)
         B = torch.sigmoid(self.syn_B)
         I = J * T + (1.0 - T) * B
+        print(I.shape)
         return I, self.syn_labels
+    
+    def get_to_save(self) -> dict:
+        data = self.get_data()
+        return {
+            "syn_data": data,
+            "save_dict": {
+                "syn_J": self.decode_J(),
+                "syn_T": self.syn_T,
+                "syn_B": self.syn_B
+            }
+        }
 
     @torch.no_grad()
     def log_images(self, step: int = None):
