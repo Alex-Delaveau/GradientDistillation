@@ -6,6 +6,8 @@ from .pixels import PixelDataset
 from .pyramid import PyramidDataset
 from .physics import PhysicsDataset
 from .physics_pyramid import PhysicsPyramidDataset
+from .seathru_physics_pyramid import SeaThruPyramidDataset
+
 
 
 def get_distilled_dataset(
@@ -25,7 +27,9 @@ def get_distilled_dataset(
 
         case "physics_pyramid":
             ds = PhysicsPyramidDataset(train_dataset=train_dataset, cfg=cfg)
-
+        
+        case "seathru_pyramid":
+            ds = SeaThruPyramidDataset(train_dataset=train_dataset, cfg=cfg)
         case _:
             raise NotImplementedError(
                 "Distillation mode {} not implemented".format(cfg.distill_mode)

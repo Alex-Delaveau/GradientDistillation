@@ -292,19 +292,9 @@ class LinearGM:
 
             to_save = self.distilled_dataset.get_to_save()
 
-            if self.cfg.distill_mode == "physics" or self.cfg.distill_mode == "physics_pyramid":
-                # If using physics, we gotta save the J, T and B matrices
-                syn_J = to_save["save_dict"]["syn_J"]
-                syn_T = to_save["save_dict"]["syn_T"]
-                syn_B = to_save["save_dict"]["syn_B"]
-                syn_J = syn_J.clone().detach()
-                syn_T = syn_T.clone().detach()
-                syn_B = syn_B.clone().detach()
-                save_dict.update({
-                    "syn_J": syn_J,
-                    "syn_T": syn_T,
-                    "syn_B": syn_B,
-                })
+            if self.cfg.distill_mode in ("physics", "physics_pyramid", "seathru_pyramid"):
+                sd = to_save["save_dict"]
+                save_dict.update({k: v.clone().detach() for k, v in sd.items()})
 
             syn_images, syn_labels = to_save["syn_data"]
             syn_images = syn_images.clone().detach()
