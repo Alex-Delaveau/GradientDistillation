@@ -56,7 +56,7 @@ class PhysicsPyramidDataset(BaseDistilledDataset):
             p.requires_grad_(True)
 
         # T: transmission map, initialised near 1 (clear water)
-        syn_T = torch.full((N, 1, H, W), 2.0, device=device, requires_grad=True)
+        syn_T = torch.full((N, 1, H, W), 0.0, device=device, requires_grad=True)
         # B: per-image ambient colour, initialised to dark
         syn_B = torch.zeros(N, 3, 1, 1, device=device, requires_grad=True)
 
