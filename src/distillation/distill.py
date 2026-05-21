@@ -33,7 +33,8 @@ def main(cfg: DistillCfg):
     )
     config = wandb.config
     cfg: DistillCfg = cfg.from_dict(config.as_dict(), skip_unsettable=True)
-    cfg.run_name = wandb.run.name
+    if wandb.run.name:
+        cfg.run_name = wandb.run.name
 
     log_dir = os.path.join(
         "logged_files", cfg.job_tag, cfg.dataset, cfg.model, cfg.run_name

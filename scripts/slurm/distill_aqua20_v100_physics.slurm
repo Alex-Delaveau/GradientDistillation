@@ -1,16 +1,15 @@
 #!/bin/bash
-#SBATCH --job-name=distill_aqua20_v100_dev
+#SBATCH --job-name=distill_aqua20_v100
 #SBATCH --account=rbw@v100
-#SBATCH --qos=qos_gpu-dev
+#SBATCH --qos=qos_gpu-t3
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=10
 #SBATCH --hint=nomultithread
-#SBATCH --time=00:30:00
+#SBATCH --time=10:00:00
 #SBATCH --output=logs/%j.out
 #SBATCH --error=logs/%j.err
-
 set -e
 
 # Modules
@@ -39,7 +38,7 @@ mkdir -p logs
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
-RUN_NAME=${RUN_NAME:-${MODEL}_distill_196_ipc1_augs6_seathru_v100}
+RUN_NAME=${RUN_NAME:-${MODEL}_distill_196_ipc1_augs10_physics_v100}
 
 srun python -m distillation.distill \
     --model=$MODEL \
@@ -52,6 +51,6 @@ srun python -m distillation.distill \
     --crop_res=196 \
     --train_crop_mode=random \
     --ipc=1 \
-    --distill_mode=seathru_pyramid \
+    --distill_mode=physics_pyramid \
     --num_workers=10 \
     "$@"
