@@ -29,28 +29,28 @@ export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
 # Venv
-source $WORK/GradientDistillation/.venv/bin/activate
+source $WORK/projects/GradientDistillation/.venv/bin/activate
 
-cd $WORK/GradientDistillation
+cd $WORK/projects/GradientDistillation
 mkdir -p logs
 
 # Paramètres (override possible via --export)
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
-RUN_NAME=${RUN_NAME:-${MODEL}_distill_196_ipc1_augs3_physics_v100}
+RUN_NAME=${RUN_NAME:-${MODEL}_distill_196_ipc1_augs6_seathru_v100}
 
 srun python -m distillation.distill \
     --model=$MODEL \
     --dataset=$DATASET \
     --data_root=$DATA_ROOT \
     --run_name=$RUN_NAME \
-    --augs_per_batch=3 \
+    --augs_per_batch=6 \
     --syn_res=196 \
     --real_res=196 \
     --crop_res=196 \
     --train_crop_mode=random \
     --ipc=1 \
-    --distill_mode=physics_pyramid \
+    --distill_mode=seathru_pyramid \
     --num_workers=10 \
     "$@"
