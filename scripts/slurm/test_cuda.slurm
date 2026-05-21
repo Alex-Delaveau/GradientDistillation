@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=test_cuda
-#SBATCH --account=ucw75ke@v100
+#SBATCH --account=rbw@v100
 #SBATCH --qos=qos_gpu-dev
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks=1

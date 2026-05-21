@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=distill_aqua20_v100_dev
-#SBATCH --account=ucw75ke@v100
+#SBATCH --account=rbw@v100
 #SBATCH --qos=qos_gpu-dev
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
