@@ -143,7 +143,6 @@ class PhysicsPyramidDataset(BaseDistilledDataset):
         T = torch.sigmoid(self.syn_T)
         B = torch.sigmoid(self.syn_B)
         I = J * T + (1.0 - T) * B
-        print(I.shape)
         return I, self.syn_labels
     
     def get_to_save(self) -> dict:
