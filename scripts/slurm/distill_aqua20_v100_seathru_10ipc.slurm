@@ -2,7 +2,7 @@
 #SBATCH --job-name=distill_aqua20_a100
 #SBATCH --account=rbw@a100
 #SBATCH --constraint=a100
-#SBATCH --qos=qos_gpu-t3
+#SBATCH --qos=qos_gpu_a100-t3
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
@@ -14,7 +14,7 @@
 set -e
 
 module purge
-module load cpuarch/amd          # OBLIGATOIRE avant tout autre module sur gpu_p5
+module load arch/a100            # pré-module obligatoire (avant tout autre)
 module load pytorch-gpu/py3/2.8.0
 
 export TORCH_HOME=$WORK/torch_cache
