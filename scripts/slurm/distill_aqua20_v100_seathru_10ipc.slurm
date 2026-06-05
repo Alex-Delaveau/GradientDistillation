@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=distill_aqua20_v100
-#SBATCH --account=rbw@v100
-#SBATCH --constraint=v100-32g
+#SBATCH --job-name=distill_aqua20_a100
+#SBATCH --account=rbw@a100
+#SBATCH --constraint=a100
 #SBATCH --qos=qos_gpu-t3
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=10
+#SBATCH --cpus-per-task=8
 #SBATCH --hint=nomultithread
 #SBATCH --time=10:00:00
 #SBATCH --output=logs/%j.out
@@ -14,6 +14,7 @@
 set -e
 
 module purge
+module load cpuarch/amd          # OBLIGATOIRE avant tout autre module sur gpu_p5
 module load pytorch-gpu/py3/2.8.0
 
 export TORCH_HOME=$WORK/torch_cache
@@ -34,7 +35,7 @@ mkdir -p logs
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
-RUN_NAME=${RUN_NAME:-${MODEL}_distill_252_ipc10_augs10_seathru_v100_32g}
+RUN_NAME=${RUN_NAME:-${MODEL}_distill_252_ipc10_augs10_seathru_a100_80g}
 
 srun python -m distillation.distill \
     --model=$MODEL \
@@ -48,5 +49,5 @@ srun python -m distillation.distill \
     --train_crop_mode=random \
     --ipc=10 \
     --distill_mode=seathru_pyramid \
-    --num_workers=10 \
+    --num_workers=8 \
     "$@"
