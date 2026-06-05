@@ -1,17 +1,7 @@
 from typing import Literal, Tuple
 
-
-from .artbench import ArtBench
 from .base import BaseRealDataset
-from .cub2011 import Cub2011
-from .flowers102 import Flowers102
-from .food101 import Food101
-from .imagenet_susbset import ImageNetSubset
-from .spawrious import Spawrious
-from .stanford_dogs import StanfordDogs
-from .waterbirds import Waterbirds
-from .fish import Fish4Knowledge
-from .aqua20 import Aqua20
+
 
 def get_dataset(
     name: str,
@@ -24,6 +14,7 @@ def get_dataset(
     match name.lower():
 
         case "food101":
+            from .food101 import Food101
             train_dataset = Food101(
                 split="train",
                 res=res,
@@ -40,6 +31,7 @@ def get_dataset(
             )
 
         case "artbench":
+            from .artbench import ArtBench
             train_dataset = ArtBench(
                 split="train",
                 res=res,
@@ -56,6 +48,7 @@ def get_dataset(
             )
 
         case "cub2011":
+            from .cub2011 import Cub2011
             train_dataset = Cub2011(
                 split="train",
                 res=res,
@@ -72,6 +65,7 @@ def get_dataset(
             )
 
         case "stanforddogs":
+            from .stanford_dogs import StanfordDogs
             train_dataset = StanfordDogs(
                 split="train",
                 res=res,
@@ -88,6 +82,7 @@ def get_dataset(
             )
 
         case "spawrious":
+            from .spawrious import Spawrious
             train_dataset = Spawrious(
                 split="train",
                 res=res,
@@ -104,6 +99,7 @@ def get_dataset(
             )
 
         case "waterbirds":
+            from .waterbirds import Waterbirds
             train_dataset = Waterbirds(
                 split="train",
                 res=res,
@@ -120,6 +116,7 @@ def get_dataset(
             )
 
         case "flowers102":
+            from .flowers102 import Flowers102
             train_dataset = Flowers102(
                 split="train",
                 res=res,
@@ -136,6 +133,7 @@ def get_dataset(
             )
 
         case "imagenet-1k":
+            from .imagenet_susbset import ImageNetSubset
             train_dataset = ImageNetSubset(
                 split="train",
                 res=res,
@@ -156,6 +154,7 @@ def get_dataset(
         case name if name.startswith("imagenet") and name not in [
             "imagenet-1k",
         ]:
+            from .imagenet_susbset import ImageNetSubset
             train_dataset = ImageNetSubset(
                 split="train",
                 res=res,
@@ -172,8 +171,9 @@ def get_dataset(
                 crop_mode="center",
                 data_root=data_root,
             )
-        
+
         case "fish4knowledge":
+            from .fish import Fish4Knowledge
             train_dataset = Fish4Knowledge(
                 split="train",
                 res=res,
@@ -188,8 +188,9 @@ def get_dataset(
                 crop_mode="center",
                 data_root=data_root,
             )
-        
+
         case "aqua20":
+            from .aqua20 import Aqua20
             train_dataset = Aqua20(
                 split="train",
                 res=res,
