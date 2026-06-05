@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=distill_aqua20_a100
-#SBATCH --account=rbw@a100
-#SBATCH --constraint=a100
-#SBATCH --qos=qos_gpu_a100-t3
+#SBATCH --job-name=distill_aqua20_h100
+#SBATCH --account=rbw@h100
+#SBATCH --constraint=h100
+#SBATCH --qos=qos_gpu_h100-t3
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=24
 #SBATCH --hint=nomultithread
 #SBATCH --time=10:00:00
 #SBATCH --output=logs/%j.out
@@ -14,7 +14,7 @@
 set -e
 
 module purge
-module load arch/a100            # pré-module obligatoire (avant tout autre)
+module load arch/h100            # pré-module obligatoire (avant tout autre)
 module load pytorch-gpu/py3/2.8.0
 
 export TORCH_HOME=$WORK/torch_cache
@@ -25,17 +25,16 @@ export XDG_CACHE_HOME=$WORK/.cache
 export WANDB_MODE=offline
 export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
-export XFORMERS_DISABLED=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-source $WORK/projects/GradientDistillation/.venv/bin/activate
+source $WORK/projects/GradientDistillation/.venv-h100/bin/activate
 cd $WORK/projects/GradientDistillation
 mkdir -p logs
 
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
-RUN_NAME=${RUN_NAME:-${MODEL}_distill_252_ipc10_augs10_seathru_a100_80g}
+RUN_NAME=${RUN_NAME:-${MODEL}_distill_252_ipc10_augs10_seathru_h100_80g}
 
 srun python -m distillation.distill \
     --model=$MODEL \
@@ -49,5 +48,5 @@ srun python -m distillation.distill \
     --train_crop_mode=random \
     --ipc=10 \
     --distill_mode=seathru_pyramid \
-    --num_workers=8 \
+    --num_workers=24 \
     "$@"
