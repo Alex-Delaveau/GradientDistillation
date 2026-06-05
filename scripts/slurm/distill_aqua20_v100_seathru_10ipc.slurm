@@ -27,7 +27,10 @@ export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-source $WORK/projects/GradientDistillation/.venv/bin/activate
+# Deps perso via la méthode IDRIS (plus de venv)
+export PYTHONUSERBASE=$WORK/python_user/h100
+export PATH=$PYTHONUSERBASE/bin:$PATH
+
 cd $WORK/projects/GradientDistillation
 mkdir -p logs
 
