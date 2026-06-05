@@ -14,7 +14,7 @@
 set -e
 
 module purge
-module load arch/h100            # pré-module obligatoire (avant tout autre)
+module load arch/h100
 module load pytorch-gpu/py3/2.8.0
 
 export TORCH_HOME=$WORK/torch_cache
@@ -27,7 +27,7 @@ export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-source $WORK/projects/GradientDistillation/.venv-h100/bin/activate
+source $WORK/projects/GradientDistillation/.venv/bin/activate
 cd $WORK/projects/GradientDistillation
 mkdir -p logs
 
