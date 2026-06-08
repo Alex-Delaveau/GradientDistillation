@@ -9,8 +9,8 @@
 #SBATCH --cpus-per-task=24
 #SBATCH --hint=nomultithread
 #SBATCH --time=10:00:00
-#SBATCH --output=logs/%j.out
-#SBATCH --error=logs/%j.err
+#SBATCH --output=logs/%x_%j.out
+#SBATCH --error=logs/%x_%j.err
 set -e
 
 module purge
@@ -26,6 +26,8 @@ export WANDB_MODE=offline
 export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export XFORMERS_DISABLED=1
+export CUDA_LAUNCH_BLOCKING=1
 
 # Deps perso via la méthode IDRIS (plus de venv)
 export PYTHONUSERBASE=$WORK/python_user/h100
@@ -44,7 +46,7 @@ srun python -m distillation.distill \
     --dataset=$DATASET \
     --data_root=$DATA_ROOT \
     --run_name=$RUN_NAME \
-    --augs_per_batch=10 \
+    --augs_per_batch=4 \
     --syn_res=252 \
     --real_res=252 \
     --crop_res=252 \

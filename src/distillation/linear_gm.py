@@ -217,9 +217,9 @@ class LinearGM:
 
             # (x - mean) / std
             x_real = self.train_dataset.normalize(x_real)
-
-            # get \phi(x)
-            z_real = model(x_real)
+            with torch.no_grad():
+                # get \phi(x)
+                z_real = model(x_real)
 
             # get output of randomly initialized linear classifier W
             out_real = fc(z_real)
