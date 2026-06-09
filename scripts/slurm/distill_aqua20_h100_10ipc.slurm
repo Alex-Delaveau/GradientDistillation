@@ -39,7 +39,7 @@ mkdir -p logs
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
-RUN_NAME=${RUN_NAME:-${MODEL}_distill_252_ipc10_augs10_seathru_h100_80g}
+RUN_NAME=${RUN_NAME:-${MODEL}_distill_252_ipc10_augs4_h100_80g}
 
 srun python -m distillation.distill \
     --model=$MODEL \
