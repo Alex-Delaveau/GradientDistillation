@@ -49,4 +49,5 @@ srun python -m distillation.distill \
     --ipc=1 \
     --distill_mode=seathru_pyramid \
     --num_workers=10 \
+    --pyramid_snapshot_it=500 \
     "$@"

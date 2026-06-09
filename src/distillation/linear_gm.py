@@ -96,6 +96,8 @@ class LinearGM:
             name=cfg.model, distributed=self.distributed
         )
 
+        self.pyramid_snapshots: list = []  # (step, decoded_images) pairs
+
         self.load_checkpoint()
 
         signal.signal(signal.SIGUSR1, self.handle_interrupt)
@@ -130,6 +132,11 @@ class LinearGM:
                     },
                     step=self.global_step,
                 )
+
+            if self.cfg.pyramid_snapshot_it > 0 and self.global_step % self.cfg.pyramid_snapshot_it == 0:
+                with torch.no_grad():
+                    imgs, _ = self.distilled_dataset.get_data()
+                    self.pyramid_snapshots.append((self.global_step, imgs.detach().clone().cpu()))
 
             if self.global_step % self.cfg.checkpoint_it == 0:
                 self.save_checkpoint()
@@ -304,6 +311,11 @@ class LinearGM:
             "images": syn_images.cpu(),
             "labels": syn_labels.cpu(),
         })
+
+        if self.pyramid_snapshots:
+            steps, imgs = zip(*self.pyramid_snapshots)
+            save_dict["pyramid_snapshots"] = list(imgs)
+            save_dict["pyramid_snapshot_steps"] = list(steps)
 
         torch.save(save_dict, "{}/data.pth".format(self.log_dir))
 

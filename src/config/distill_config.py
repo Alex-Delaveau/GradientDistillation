@@ -22,6 +22,7 @@ class DistillCfg(BaseCfg):
 
     pyramid_extent_it: int = 200
     pyramid_start_res: int = 1
+    pyramid_snapshot_it: int = 0  # save decoded pyramid every N iterations (0 = disabled)
 
     image_log_it: int = 500
 
