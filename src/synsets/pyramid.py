@@ -108,8 +108,10 @@ class PyramidDataset(BaseDistilledDataset):
 
         return True
 
-    def decode_pyramid(self) -> Tensor:
-
+    def decode_pyramid(self, n_levels: int = None) -> Tensor:
+        # n_levels=None -> tous les niveaux (comportement inchangé)
+        # n_levels=k    -> seulement les k niveaux les plus grossiers
+        levels = self.pyramid if n_levels is None else self.pyramid[-n_levels:]
         result = torch.sum(
             torch.stack(
                 [
@@ -119,7 +121,7 @@ class PyramidDataset(BaseDistilledDataset):
                         antialias=False,
                         mode="bilinear",
                     )
-                    for p in self.pyramid
+                    for p in levels
                 ]
             ),
             dim=0,
@@ -131,6 +133,15 @@ class PyramidDataset(BaseDistilledDataset):
         result = torch.sigmoid(2 * result)
 
         return result
+    
+    @torch.no_grad()
+    def get_snapshot(self) -> dict:
+        I_levels = [self.decode_pyramid(n_levels=k) for k in range(1, len(self.pyramid) + 1)]
+        return {
+            "I": I_levels[-1].cpu(),
+            "I_levels": [x.cpu() for x in I_levels],
+            "level_res": [p.shape[-1] for p in reversed(self.pyramid)],
+        }
 
     def get_data(self) -> Tuple[Tensor, Tensor]:
         syn_images = self.decode_pyramid()

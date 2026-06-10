@@ -72,17 +72,20 @@ class PhysicsPyramidDataset(BaseDistilledDataset):
         ]
         return torch.optim.Adam(param_groups)
 
-    def decode_J(self) -> Tensor:
+    def decode_J(self, n_levels: int = None) -> Tensor:
+        # n_levels=None -> tous les niveaux (comportement inchangé)
+        # n_levels=k    -> seulement les k niveaux les plus grossiers
+        levels = self.pyramid_J if n_levels is None else self.pyramid_J[-n_levels:]
         result = torch.sum(
             torch.stack(
                 [
-                    torch.nn.functional.interpolate(
+                    F.interpolate(
                         p,
                         (self.cfg.syn_res, self.cfg.syn_res),
                         antialias=False,
                         mode="bilinear",
                     )
-                    for p in self.pyramid_J
+                    for p in levels
                 ]
             ),
             dim=0,
@@ -92,6 +95,22 @@ class PhysicsPyramidDataset(BaseDistilledDataset):
             result = self.linear_decorrelate_color(result)
 
         return torch.sigmoid(2 * result)
+    
+    @torch.no_grad()
+    def get_snapshot(self) -> dict:
+        T = torch.sigmoid(self.syn_T)
+        B = torch.sigmoid(self.syn_B)
+        J_levels = [self.decode_J(n_levels=k) for k in range(1, len(self.pyramid_J) + 1)]
+        J = J_levels[-1]
+        I = J * T + (1.0 - T) * B
+        return {
+            "I": I.cpu(),
+            "J": J.cpu(),
+            "T": T.cpu(),
+            "B": B.cpu(),
+            "J_levels": [j.cpu() for j in J_levels],
+            "level_res": [p.shape[-1] for p in reversed(self.pyramid_J)],
+        }
 
     def extend_pyramid(self) -> bool:
         print("extending J pyramid...")

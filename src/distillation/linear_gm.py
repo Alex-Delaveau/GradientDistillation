@@ -122,6 +122,17 @@ class LinearGM:
             if self.global_step % self.cfg.image_log_it == 0:
                 self.distilled_dataset.log_images(step=self.global_step)
 
+
+            if self.cfg.pyramid_snapshot_it > 0 and self.global_step % self.cfg.pyramid_snapshot_it == 0:
+                if hasattr(self.distilled_dataset, "get_snapshot"):
+                    snap = self.distilled_dataset.get_snapshot()
+                else:
+                    with torch.no_grad():
+                        imgs, _ = self.distilled_dataset.get_data()
+                        snap = {"I": imgs.detach().cpu()}
+                self.pyramid_snapshots.append((self.global_step, snap))
+                print(f"Saved pyramid snapshot at step {self.global_step}")
+
             # perform linear gradient matching
             loss = self.match_gradients()
 
@@ -133,10 +144,7 @@ class LinearGM:
                     step=self.global_step,
                 )
 
-            if self.cfg.pyramid_snapshot_it > 0 and self.global_step % self.cfg.pyramid_snapshot_it == 0:
-                with torch.no_grad():
-                    imgs, _ = self.distilled_dataset.get_data()
-                    self.pyramid_snapshots.append((self.global_step, imgs.detach().clone().cpu()))
+            
 
             if self.global_step % self.cfg.checkpoint_it == 0:
                 self.save_checkpoint()
@@ -312,10 +320,13 @@ class LinearGM:
             "labels": syn_labels.cpu(),
         })
 
+
         if self.pyramid_snapshots:
+            
             steps, imgs = zip(*self.pyramid_snapshots)
             save_dict["pyramid_snapshots"] = list(imgs)
             save_dict["pyramid_snapshot_steps"] = list(steps)
+            print("Saving pyramid snapshots at steps: ", steps)
 
         torch.save(save_dict, "{}/data.pth".format(self.log_dir))
 
