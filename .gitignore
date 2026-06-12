@@ -14,3 +14,7 @@ wandb
 baselines/results
 data/datasets
 logged_files
+
+.DS_Store
+
+exp/outputs
