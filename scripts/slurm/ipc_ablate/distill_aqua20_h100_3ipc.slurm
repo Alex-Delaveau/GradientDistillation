@@ -27,7 +27,6 @@ export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export XFORMERS_DISABLED=1
-export CUDA_LAUNCH_BLOCKING=1
 
 # Deps perso via la méthode IDRIS (plus de venv)
 export PYTHONUSERBASE=$WORK/python_user/h100
