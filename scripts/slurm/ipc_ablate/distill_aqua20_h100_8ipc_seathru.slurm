@@ -39,14 +39,14 @@ mkdir -p logs
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
-RUN_NAME=${RUN_NAME:-${MODEL}_distill_224_ipc8_augs6_seathru_h100_80g}
+RUN_NAME=${RUN_NAME:-${MODEL}_distill_224_ipc8_augs5_seathru_h100_80g}
 
 srun python -m distillation.distill \
     --model=$MODEL \
     --dataset=$DATASET \
     --data_root=$DATA_ROOT \
     --run_name=$RUN_NAME \
-    --augs_per_batch=6 \
+    --augs_per_batch=5 \
     --syn_res=224 \
     --real_res=224 \
     --crop_res=224 \
