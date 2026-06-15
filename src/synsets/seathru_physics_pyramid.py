@@ -10,7 +10,6 @@ from my_utils.device import DeviceSingleton
 from my_utils.log_utils import log_images
 
 from .base import BaseDistilledDataset
-import torch.nn.functional as F
 
 class SeaThruPyramidDataset(BaseDistilledDataset):
     """

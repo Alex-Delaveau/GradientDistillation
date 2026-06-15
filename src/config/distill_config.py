@@ -6,7 +6,7 @@ from .base_config import BaseCfg
 
 class DistillCfg(BaseCfg):
     num_workers: int = 16
-
+    seed : int = 3407
     job_tag: str = "distillation"
 
     ipc: int = 1

@@ -13,10 +13,17 @@ from .linear_gm import LinearGM
 
 
 def main(cfg: DistillCfg):
-    model_dir = os.path.join("logged_files", cfg.job_tag, cfg.dataset, cfg.model)
-    print("Searching for checkpoints in {}".format(model_dir))
+    if cfg.run_name is not None:
+        cfg.run_name = f"{cfg.run_name}_s{cfg.seed}"
+
+    run_dir = os.path.join(
+        "logged_files", cfg.job_tag, cfg.dataset, cfg.model, cfg.run_name
+    )
+    
+    
+    print("Searching for checkpoints in {}".format(run_dir))
     syn_set_files = sorted(
-        list(glob.glob(os.path.join(model_dir, "**", "05000.pth"), recursive=True))
+        list(glob.glob(os.path.join(run_dir, "**", "05000.pth"), recursive=True))
     )
     if len(syn_set_files) > 0 and cfg.skip_if_exists:
         print("This distillation already done.")
@@ -25,6 +32,7 @@ def main(cfg: DistillCfg):
 
     wandb.init(
         id=cfg.run_name,
+        name=cfg.run_name,
         job_type="distillation",
         project="Linear-Gradient-Matching",
         config=cfg.as_dict(),
@@ -61,11 +69,14 @@ def main(cfg: DistillCfg):
 
 
 if __name__ == "__main__":
-    torch.manual_seed(3407)
-    random.seed(3407)
-    np.random.seed(3407)
     torch.multiprocessing.set_sharing_strategy("file_system")
     args = DistillCfg(explicit_bool=True).parse_args()
+
+    torch.manual_seed(args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+
     print(args)
     main(args)
     print("Should be ending now")
