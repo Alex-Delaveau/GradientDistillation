@@ -9,8 +9,8 @@
 #SBATCH --cpus-per-task=24
 #SBATCH --hint=nomultithread
 #SBATCH --time=10:00:00
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --output=logs/ipc_ablation/%x_%j.out
+#SBATCH --error=logs/ipc_ablation/%x_%j.err
 set -e
 
 module purge
@@ -33,7 +33,7 @@ export PYTHONUSERBASE=$WORK/python_user/h100
 export PATH=$PYTHONUSERBASE/bin:$PATH
 
 cd $WORK/projects/GradientDistillation
-mkdir -p logs
+mkdir -p logs/ipc_ablation
 
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
