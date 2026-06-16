@@ -206,6 +206,23 @@ def get_dataset(
                 data_root=data_root,
             )
 
+        case "sipfare10":
+            from .sipfar import SIPFAR
+            train_dataset = SIPFAR(
+                split="train",
+                res=res,
+                crop_res=res,
+                crop_mode=train_crop_mode,
+                data_root=data_root,
+            )
+            test_dataset = SIPFAR(
+                split="test",
+                res=res,
+                crop_res=crop_res,
+                crop_mode="center",
+                data_root=data_root,
+            )
+
         case _:
             raise NotImplementedError("Dataset {} not implemented".format(name))
 
