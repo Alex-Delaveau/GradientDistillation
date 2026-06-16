@@ -206,7 +206,7 @@ def get_dataset(
                 data_root=data_root,
             )
 
-        case "sipfare10":
+        case "sipfar10":
             from .sipfar import SIPFAR
             train_dataset = SIPFAR(
                 split="train",
