@@ -7,11 +7,11 @@ from .pyramid import PyramidDataset
 from .physics import PhysicsDataset
 from .physics_pyramid import PhysicsPyramidDataset
 from .seathru_physics_pyramid import SeaThruPyramidDataset
-
+import torch.nn as nn
 
 
 def get_distilled_dataset(
-    train_dataset: BaseRealDataset, cfg: DistillCfg
+    train_dataset: BaseRealDataset, cfg: DistillCfg, backbone: nn.Module | None = None, num_feat: int | None = None
 ) -> BaseDistilledDataset:
 
     match cfg.distill_mode:
@@ -26,7 +26,7 @@ def get_distilled_dataset(
             ds = PhysicsDataset(train_dataset=train_dataset, cfg=cfg)
 
         case "physics_pyramid":
-            ds = PhysicsPyramidDataset(train_dataset=train_dataset, cfg=cfg)
+            ds = PhysicsPyramidDataset(train_dataset=train_dataset, cfg=cfg, backbone=backbone, num_feat=num_feat)
         
         case "seathru_pyramid":
             ds = SeaThruPyramidDataset(train_dataset=train_dataset, cfg=cfg)

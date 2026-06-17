@@ -35,3 +35,7 @@ class DistillCfg(BaseCfg):
     crop_res: int = 224 
 
     train_crop_mode: Literal["center", "random"] = "random"
+
+
+    ppg_checkpoint_path: str = "/ppg/weight/I40000_E500_ppg.pth"
+    ppg_input_channels: int = 3

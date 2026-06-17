@@ -10,6 +10,8 @@ from my_utils.log_utils import log_images
 
 from .base import BaseDistilledDataset
 import torch.nn.functional as F
+from .medoids_init import MedoidInitializer
+from .ppg_init import PPGInitializer
 
 class PhysicsPyramidDataset(BaseDistilledDataset):
     """
@@ -18,28 +20,46 @@ class PhysicsPyramidDataset(BaseDistilledDataset):
     full-resolution tensor.
     """
 
-    def __init__(self, train_dataset: BaseRealDataset, cfg: DistillCfg):
+    def __init__(self, train_dataset: BaseRealDataset, cfg: DistillCfg, backbone: torch.nn.Module, num_feat: int):
         super().__init__()
         self.train_dataset = train_dataset
         self.cfg = cfg
+        self.medoid_init = MedoidInitializer(self.cfg, self.train_dataset, backbone,num_feat)
+        self.ppg_init = PPGInitializer(self.cfg)
 
         (self.pyramid_J, self.syn_T, self.syn_B), self.syn_labels = self.init_synset()
         self.optimizer = self.init_optimizer()
 
-    def init_synset(self) -> Tuple[Tuple[List[Tensor], Tensor, Tensor], Tensor]:
+    def init_synset(self):
         N = self.cfg.ipc * self.train_dataset.num_classes
-        H = W = self.cfg.syn_res
         device = DeviceSingleton.get()
 
-        syn_labels = torch.cat(
-            [
-                torch.tensor([c] * self.cfg.ipc, dtype=torch.long)
-                for c in range(self.train_dataset.num_classes)
-            ],
-            dim=0,
-        ).to(device)
+        # 1) medoids en ordre classe-major (= ordre de syn_labels)
 
-        # Build J pyramid (logit space), starting at pyramid_start_res
+        features, labels = self.medoid_init.compute_features()
+        medoid_idx = self.medoid_init.find_medoids(features, labels)   # dict c -> [global idx]
+
+        ordered_idx, label_list = [], []
+        for c in range(self.train_dataset.num_classes):
+            idxs = medoid_idx[c]
+            if len(idxs) < self.cfg.ipc:                # classe trop petite -> on repete
+                idxs = (idxs * self.cfg.ipc)[:self.cfg.ipc]
+            ordered_idx += idxs[:self.cfg.ipc]
+            label_list  += [c] * self.cfg.ipc
+        syn_labels = torch.tensor(label_list, dtype=torch.long, device=device)
+
+        # 2) PPG sur chaque medoid -> inits T, B
+        T_list, B_list = [], []
+        for i in ordered_idx:
+            path = self.train_dataset.get_path(i)
+            img  = self.ppg_init.load_img(path)         # [1,3,256,256] en [-1,1]
+            syn_T_i, syn_B_i = self.ppg_init.run_physical_model(img)
+            T_list.append(syn_T_i); B_list.append(syn_B_i)
+
+        syn_T = torch.cat(T_list, 0).detach().clone().requires_grad_(True)   # [N,1,H,W]
+        syn_B = torch.cat(B_list, 0).detach().clone().requires_grad_(True)   # [N,3,1,1]
+
+        # 3) pyramide J (inchangee pour l'instant)
         pyramid_J = []
         res = 1
         while res <= self.cfg.pyramid_start_res:
@@ -50,15 +70,9 @@ class PhysicsPyramidDataset(BaseDistilledDataset):
             res *= 2
             if res > self.cfg.syn_res:
                 res = self.cfg.syn_res
-
         pyramid_J = [p / len(pyramid_J) for p in pyramid_J]
         for p in pyramid_J:
             p.requires_grad_(True)
-
-        # T: transmission map, initialised near 1 (clear water)
-        syn_T = torch.full((N, 1, H, W), 0.0, device=device, requires_grad=True)
-        # B: per-image ambient colour, initialised to dark
-        syn_B = torch.zeros(N, 3, 1, 1, device=device, requires_grad=True)
 
         return (pyramid_J, syn_T, syn_B), syn_labels
 

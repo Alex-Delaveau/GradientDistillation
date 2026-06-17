@@ -49,3 +49,8 @@ class BaseRealDataset(Dataset):
         raise NotImplementedError(
             "get_single_class is not implemented for this dataset."
         )
+
+    def get_path(self, idx: int) -> str:
+        raise NotImplementedError(
+            "get_path is not implemented for this dataset."
+        )

@@ -90,6 +90,10 @@ class Aqua20(BaseRealDataset):
     def __getitem__(self, index):
         image, label = self.ds.__getitem__(index)
         return image, label
+    
+    def get_path(self, idx):
+        """Get the file path of the image at the specified index."""
+        return self.ds.samples[idx][0]
 
     def get_single_class(self, cls: int) -> Tensor:
         copy_ds = copy.deepcopy(self.full_ds)

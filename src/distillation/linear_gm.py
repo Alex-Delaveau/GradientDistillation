@@ -79,8 +79,14 @@ class LinearGM:
         )
         self.train_iter = iter(self.train_loader)
 
+        self.distributed = self.cfg.device_count > 1
+
+        self.backbone_model, self.num_feats = get_model(
+            name=cfg.model, distributed=self.distributed
+        )
+
         self.distilled_dataset = get_distilled_dataset(
-            train_dataset=self.train_dataset, cfg=self.cfg
+            train_dataset=self.train_dataset, cfg=self.cfg, backbone=self.backbone_model, num_feat=self.num_feats
         )
 
         self.syn_augmentor = get_augmentor(
@@ -90,11 +96,8 @@ class LinearGM:
             aug_mode=self.cfg.aug_mode, crop_res=self.cfg.crop_res
         )
 
-        self.distributed = self.cfg.device_count > 1
 
-        self.backbone_model, self.num_feats = get_model(
-            name=cfg.model, distributed=self.distributed
-        )
+        
 
         self.pyramid_snapshots: list = []  # (step, decoded_images) pairs
 
