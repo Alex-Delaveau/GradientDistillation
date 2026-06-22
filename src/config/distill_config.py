@@ -14,7 +14,7 @@ class DistillCfg(BaseCfg):
     iterations: int = 5000
     augs_per_batch: int = 10
 
-    distill_mode: Literal["pixel", "pyramid", "physics", "physics_pyramid", "seathru_pyramid"] = "pyramid"
+    distill_mode: Literal["pixel", "pyramid", "physics", "physics_pyramid", "physics_pyramid_ppg", "seathru_pyramid"] = "pyramid"
     aug_mode: Literal["standard", "none"] = "standard"
     decorrelate_color: bool = True
 
@@ -36,8 +36,7 @@ class DistillCfg(BaseCfg):
 
     train_crop_mode: Literal["center", "random"] = "random"
 
-
-    ppg_checkpoint_path: str = "/ppg/weight/I40000_E500_ppg.pth"
+    ppg_checkpoint_path: str = ""
     ppg_input_channels: int = 3
 
     eval_it: int = 0          # run linear probe every N steps (0 = disabled)

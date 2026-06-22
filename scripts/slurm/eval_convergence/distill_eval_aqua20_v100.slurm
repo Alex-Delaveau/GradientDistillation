@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=distill_aqua20_v100
+#SBATCH --job-name=distill_eval_aqua20_v100
 #SBATCH --account=rbw@v100
 #SBATCH --constraint=v100-32g
 #SBATCH --qos=qos_gpu-t3
@@ -34,7 +34,7 @@ mkdir -p logs
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
-RUN_NAME=${RUN_NAME:-${MODEL}_distill_252_ipc1_augs10_seathru_v100_32g}
+RUN_NAME=${RUN_NAME:-${MODEL}_distill_eval_252_ipc1_augs10_v100_32g}
 
 srun python -m distillation.distill \
     --model=$MODEL \
@@ -47,7 +47,7 @@ srun python -m distillation.distill \
     --crop_res=252 \
     --train_crop_mode=random \
     --ipc=1 \
-    --distill_mode=seathru_pyramid \
+    --distill_mode=pyramid \
     --num_workers=10 \
     --pyramid_snapshot_it=500 \
     --eval_it 500 \

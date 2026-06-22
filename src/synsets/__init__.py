@@ -27,7 +27,10 @@ def get_distilled_dataset(
 
         case "physics_pyramid":
             ds = PhysicsPyramidDataset(train_dataset=train_dataset, cfg=cfg, backbone=backbone, num_feat=num_feat)
-        
+
+        case "physics_pyramid_ppg":
+            ds = PhysicsPyramidDataset(train_dataset=train_dataset, cfg=cfg, backbone=backbone, num_feat=num_feat, do_ppg_init=True)
+
         case "seathru_pyramid":
             ds = SeaThruPyramidDataset(train_dataset=train_dataset, cfg=cfg)
         case _:
