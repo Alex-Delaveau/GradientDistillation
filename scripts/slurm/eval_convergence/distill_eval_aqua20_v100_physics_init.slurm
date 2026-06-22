@@ -34,7 +34,7 @@ mkdir -p logs
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
-RUN_NAME=${RUN_NAME:-${MODEL}_distill_eval_252_ipc1_augs10_seathru_v100_32g}
+RUN_NAME=${RUN_NAME:-${MODEL}_distill_eval_252_ipc1_augs10_physics_init_v100_32g}
 
 srun python -m distillation.distill \
     --model=$MODEL \
@@ -47,7 +47,7 @@ srun python -m distillation.distill \
     --crop_res=252 \
     --train_crop_mode=random \
     --ipc=1 \
-    --distill_mode=seathru_pyramid_ppg \
+    --distill_mode=physics_pyramid_ppg \
     --num_workers=10 \
     --pyramid_snapshot_it=500 \
     --eval_it 500 \
