@@ -10,16 +10,18 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.amp import autocast
-from torch.utils.data import DataLoader, WeightedRandomSampler
+from torch.utils.data import DataLoader, TensorDataset, WeightedRandomSampler
 from tqdm import tqdm
 
 import wandb
-from augmentation import get_augmentor
+from augmentation import AugBasic, get_augmentor
 from config import DistillCfg
 from data.dataloaders import get_dataset
+from .eval import Evaluator
 from models import get_fc, get_model
 from my_utils.device import DeviceSingleton
 from synsets import get_distilled_dataset
+from torchmetrics.classification import MulticlassAccuracy
 
 
 class LinearGM:
@@ -101,6 +103,9 @@ class LinearGM:
 
         self.pyramid_snapshots: list = []  # (step, decoded_images) pairs
 
+        if self.cfg.eval_it > 0:
+            self.val_augmentor = AugBasic(crop_res=self.cfg.crop_res).to(DeviceSingleton.get())
+
         self.load_checkpoint()
 
         signal.signal(signal.SIGUSR1, self.handle_interrupt)
@@ -147,7 +152,16 @@ class LinearGM:
                     step=self.global_step,
                 )
 
-            
+            if (
+                self.cfg.eval_it > 0
+                and self.global_step > 0
+                and self.global_step % self.cfg.eval_it == 0
+            ):
+                top1, top1_std = self.run_eval()
+                wandb.log(
+                    {"val/top1": top1 * 100, "val/top1_std": top1_std * 100},
+                    step=self.global_step,
+                )
 
             if self.global_step % self.cfg.checkpoint_it == 0:
                 self.save_checkpoint()
@@ -302,6 +316,52 @@ class LinearGM:
         grad_syn = torch.cat([grad_syn_w.flatten(), grad_syn_b.flatten()], dim=0)
 
         return grad_syn
+
+    def run_eval(self):
+        num_classes = self.train_dataset.num_classes
+
+        with torch.no_grad():
+            imgs, labels = self.distilled_dataset.get_data()
+            imgs = imgs.detach().clone().cpu()
+            labels = labels.detach().clone().cpu()
+
+        ds = TensorDataset(imgs, labels)
+        loader = DataLoader(ds, batch_size=min(100, len(imgs)), shuffle=True)
+
+        top1_results = []
+        for _ in range(self.cfg.eval_num_eval):
+            top1_metric = MulticlassAccuracy(
+                average="micro", num_classes=num_classes, top_k=1
+            ).to(DeviceSingleton.get())
+            top5_metric = (
+                MulticlassAccuracy(average="micro", num_classes=num_classes, top_k=5)
+                .to(DeviceSingleton.get())
+                if num_classes >= 5
+                else None
+            )
+
+            evaluator = Evaluator(
+                train_loader=loader,
+                test_loader=self.test_loader,
+                model=self.backbone_model,
+                checkpoint_path=None,
+                augmentor=self.val_augmentor,
+                epochs=self.cfg.eval_epochs,
+                eval_it=1,
+                patience=self.cfg.eval_patience,
+                checkpoint_it=999999,
+                normalize=self.train_dataset.normalize,
+                num_feats=self.num_feats,
+                num_classes=num_classes,
+                num_eval=1,
+                top1_metric=top1_metric,
+                top5_metric=top5_metric,
+            )
+
+            evaluator.train_and_eval()
+            top1_results.append(evaluator.top1_list[0])
+
+        return float(np.mean(top1_results)), float(np.std(top1_results))
 
     # saving synthetic images and labels to disk
     def save_data(self):

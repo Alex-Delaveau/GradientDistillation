@@ -39,3 +39,8 @@ class DistillCfg(BaseCfg):
 
     ppg_checkpoint_path: str = "/ppg/weight/I40000_E500_ppg.pth"
     ppg_input_channels: int = 3
+
+    eval_it: int = 0          # run linear probe every N steps (0 = disabled)
+    eval_epochs: int = 1000   # max epochs per probe run; early stopping usually terminates earlier
+    eval_patience: int = 5    # early stopping patience for the periodic probe
+    eval_num_eval: int = 3    # number of probe runs to average

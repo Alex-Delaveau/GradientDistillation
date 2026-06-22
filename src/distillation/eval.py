@@ -171,8 +171,9 @@ class Evaluator:
 
     @torch.no_grad()
     def evaluate(self):
-        
-
+        self.top1_metric.reset()
+        if self.top5_metric is not None:
+            self.top5_metric.reset()
 
         for x, y in tqdm(self.test_loader, desc="Evaluating Linear Head", leave=False):
             x = x.to(DeviceSingleton.get(), non_blocking=True)
