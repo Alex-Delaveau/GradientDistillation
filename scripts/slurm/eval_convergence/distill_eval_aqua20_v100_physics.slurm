@@ -50,8 +50,8 @@ srun python -m distillation.distill \
     --distill_mode=physics_pyramid \
     --num_workers=10 \
     --pyramid_snapshot_it=500 \
-    --eval_it 500 \
-    --eval_num_eval 3 \
+    --eval_it 250 \
+    --eval_num_eval 1 \
     --eval_epochs 100 \
-    --iterations 10000 \
+    --iterations 5000 \
     "$@"

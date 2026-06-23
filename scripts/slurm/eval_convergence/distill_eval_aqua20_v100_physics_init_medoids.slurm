@@ -34,7 +34,7 @@ mkdir -p logs
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
-RUN_NAME=${RUN_NAME:-${MODEL}_distill_eval_252_ipc1_augs10_seathru_v100_32g}
+RUN_NAME=${RUN_NAME:-${MODEL}_distill_eval_252_ipc1_augs10_physics_init_medoids_v100_32g}
 
 srun python -m distillation.distill \
     --model=$MODEL \
@@ -47,11 +47,12 @@ srun python -m distillation.distill \
     --crop_res=252 \
     --train_crop_mode=random \
     --ipc=1 \
-    --distill_mode=seathru_pyramid \
+    --distill_mode=physics_pyramid_ppg \
     --num_workers=10 \
     --pyramid_snapshot_it=500 \
     --eval_it 250 \
     --eval_num_eval 1 \
     --eval_epochs 100 \
     --iterations 5000 \
+    --ppg_checkpoint_path=$WORK/projects/PPG/experiments_train/Pa-Diff_260615_211348/checkpoint/I40000_E500_ppg.pth \
     "$@"
