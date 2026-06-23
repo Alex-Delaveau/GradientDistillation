@@ -36,6 +36,7 @@ class DistillCfg(BaseCfg):
 
     train_crop_mode: Literal["center", "random"] = "random"
 
+    sample_init : Literal["medoids", "random"] = "medoids"
     ppg_checkpoint_path: str = ""
     ppg_input_channels: int = 3
 

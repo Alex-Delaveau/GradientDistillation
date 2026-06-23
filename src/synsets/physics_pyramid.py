@@ -10,8 +10,9 @@ from my_utils.log_utils import log_images
 
 from .base import BaseDistilledDataset
 import torch.nn.functional as F
-from .medoids_init import MedoidInitializer
-from .ppg_init import PPGInitializer
+from .initializer.medoids_init import MedoidInitializer
+from .initializer.ppg_init import PPGInitializer
+from .initializer.random_init import RandomInitializer
 
 class PhysicsPyramidDataset(BaseDistilledDataset):
     """
@@ -26,7 +27,15 @@ class PhysicsPyramidDataset(BaseDistilledDataset):
         self.cfg = cfg
         self.do_ppg_init = do_ppg_init
         if self.do_ppg_init:
-            self.medoid_init = MedoidInitializer(self.cfg, self.train_dataset, backbone, num_feat)
+            if self.cfg.sample_init == "medoids":
+                self.sample_init = MedoidInitializer(
+                    self.cfg, self.train_dataset, backbone, num_feat, self.cfg.seed
+                )
+            elif self.cfg.sample_init == "random":
+                self.sample_init = RandomInitializer(
+                    self.cfg, self.train_dataset, seed=self.cfg.seed
+                )
+            
             self.ppg_init = PPGInitializer(self.cfg)
 
         (self.pyramid_J, self.syn_T, self.syn_B), self.syn_labels = self.init_synset()
@@ -37,13 +46,12 @@ class PhysicsPyramidDataset(BaseDistilledDataset):
         device = DeviceSingleton.get()
 
         if self.do_ppg_init:
-            # 1) medoids en ordre classe-major (= ordre de syn_labels)
-            features, labels = self.medoid_init.compute_features()
-            medoid_idx = self.medoid_init.find_medoids(features, labels)   # dict c -> [global idx]
+            # 1) medoids/random en ordre classe-major (= ordre de syn_labels)
+            sample_idx = self.sample_init.get_indices()
 
             ordered_idx, label_list = [], []
             for c in range(self.train_dataset.num_classes):
-                idxs = medoid_idx[c]
+                idxs = sample_idx[c]
                 if len(idxs) < self.cfg.ipc:                # classe trop petite -> on repete
                     idxs = (idxs * self.cfg.ipc)[:self.cfg.ipc]
                 ordered_idx += idxs[:self.cfg.ipc]

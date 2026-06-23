@@ -114,6 +114,13 @@ class LinearGM:
 
     def distill(self):
 
+        if self.cfg.eval_it > 0 and self.global_step == 0:
+            top1, top1_std = self.run_eval()
+            wandb.log(
+                {"val/top1": top1 * 100, "val/top1_std": top1_std * 100},
+                step=0,
+            )
+
         for i in tqdm(
             range(self.global_step, self.cfg.iterations + 1),
             initial=self.global_step,

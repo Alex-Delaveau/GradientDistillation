@@ -11,13 +11,17 @@ import kmedoids
 
 class MedoidInitializer():
 
-    def __init__(self, cfg: DistillCfg, train_dataset: Dataset, backbone: nn.Module, num_feat: int):
+    def __init__(self, cfg: DistillCfg, train_dataset: Dataset, backbone: nn.Module, num_feat: int, seed: int):
         self.cfg = cfg
         self.train_dataset = train_dataset
         self.train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False, num_workers=8)
         self.backbone = self.init_backbone(backbone)
         self.num_feat = num_feat
-        
+        self.seed = seed
+    
+    def get_indices(self) -> dict:
+        features, labels = self.compute_features()
+        return self.find_medoids(features, labels)
 
     def init_backbone(self, backbone: nn.Module) -> nn.Module:
         """Set the backbone to eval mode and freeze its parameters."""
@@ -54,7 +58,7 @@ class MedoidInitializer():
             D = np.clip(1.0 - Fc @ Fc.T, 0.0, 2.0)
             np.fill_diagonal(D, 0.0)
 
-            res = kmedoids.fasterpam(D, k) 
+            res = kmedoids.fasterpam(D, k, random_state=self.seed)
             medoid_global_idx[c] = cls_idx[res.medoids].tolist()
         
         return medoid_global_idx
