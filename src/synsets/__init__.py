@@ -7,6 +7,7 @@ from .pyramid import PyramidDataset
 from .physics import PhysicsDataset
 from .physics_pyramid import PhysicsPyramidDataset
 from .seathru_physics_pyramid import SeaThruPyramidDataset
+from .physics_formation_pyramid import PhysicsFormationDataset
 import torch.nn as nn
 
 
@@ -28,11 +29,11 @@ def get_distilled_dataset(
         case "physics_pyramid":
             ds = PhysicsPyramidDataset(train_dataset=train_dataset, cfg=cfg, backbone=backbone, num_feat=num_feat)
 
-        case "physics_pyramid_ppg":
-            ds = PhysicsPyramidDataset(train_dataset=train_dataset, cfg=cfg, backbone=backbone, num_feat=num_feat, do_ppg_init=True)
-
         case "seathru_pyramid":
             ds = SeaThruPyramidDataset(train_dataset=train_dataset, cfg=cfg)
+
+        case "physics_formation":
+            ds = PhysicsFormationDataset(train_dataset=train_dataset, cfg=cfg, backbone=backbone, num_feat=num_feat)
         case _:
             raise NotImplementedError(
                 "Distillation mode {} not implemented".format(cfg.distill_mode)

@@ -1,6 +1,6 @@
-
+from .base_sample_init import BaseSampleInitializer
 from config import DistillCfg
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from my_utils.device import DeviceSingleton
 import torch.nn as nn
 import torch
@@ -9,16 +9,13 @@ import numpy as np
 import kmedoids
 
 
-class MedoidInitializer():
+class MedoidInitializer(BaseSampleInitializer):
 
-    def __init__(self, cfg: DistillCfg, train_dataset: Dataset, backbone: nn.Module, num_feat: int, seed: int):
-        self.cfg = cfg
-        self.train_dataset = train_dataset
-        self.train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False, num_workers=8)
+    def __init__(self, cfg: DistillCfg, train_dataset: Dataset,
+                 backbone: nn.Module, num_feat: int, seed: int):
+        super().__init__(cfg, train_dataset, backbone, num_feat, seed)
         self.backbone = self.init_backbone(backbone)
-        self.num_feat = num_feat
-        self.seed = seed
-    
+
     def get_indices(self) -> dict:
         features, labels = self.compute_features()
         return self.find_medoids(features, labels)
@@ -30,8 +27,8 @@ class MedoidInitializer():
         for param in backbone.parameters():
             param.requires_grad = False
         return backbone
-    
-    def compute_features(self) -> torch.Tensor:
+
+    def compute_features(self) -> tuple[torch.Tensor, torch.Tensor]:
         """Compute features for all images in the training dataset using the backbone."""
         feats, labels = [], []
         with torch.no_grad():
@@ -50,7 +47,7 @@ class MedoidInitializer():
         labels_np   = labels.numpy()
 
         medoid_global_idx = {}
-        for c in range(self.train_loader.dataset.num_classes):
+        for c in range(self.num_classes):
             cls_idx = np.where(labels_np == c)[0]
             Fc = features_np[cls_idx]
             k  = min(self.cfg.ipc, len(cls_idx))
@@ -60,5 +57,5 @@ class MedoidInitializer():
 
             res = kmedoids.fasterpam(D, k, random_state=self.seed)
             medoid_global_idx[c] = cls_idx[res.medoids].tolist()
-        
+
         return medoid_global_idx

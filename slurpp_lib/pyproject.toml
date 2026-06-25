@@ -1,0 +1,13 @@
+[project]
+name = "slurpp-lib"
+version = "0.0.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["slurpp*", "my_diffusers*", "utils*"]

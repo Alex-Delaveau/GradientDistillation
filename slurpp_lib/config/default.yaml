@@ -1,0 +1,59 @@
+base_config:
+- logging.yaml
+- wandb.yaml
+- model_sdv2.yaml
+
+
+pipeline:
+  name: SlurppPipeline
+
+job_name: default
+
+dataloader:
+  num_workers: 1
+  effective_batch_size: 32
+  max_train_batch_size: 1
+  seed: 2024  # to ensure continuity when resuming from checkpoint
+  val_size: 20
+  train_vis_size: 4
+
+# Training settings
+trainer:
+  name: SlurppTrainer
+  training_noise_scheduler:
+    pretrained_path: stable-diffusion-2
+  init_seed: 2024  # use null to train w/o seeding
+  val_vis_frequency: 1
+  num_hour_between_val: 0.5
+
+max_epoch: 10000 # a large enough number
+max_iter: 100000 # usually converges at around 20k
+
+optimizer:
+  name: Adam
+
+loss:
+  name: mse_loss
+  kwargs:
+    reduction: mean
+
+lr: 3.0e-05
+lr_scheduler:
+  name: IterExponential
+  kwargs:
+    total_iter: 50000
+    final_ratio: 0.01
+    warmup_steps: 100
+
+# Validation (and visualization) settings
+validation:
+  denoising_steps: 1
+  main_val_metric: psnr
+  main_val_metric_goal: minimize
+  init_seed: 2024
+
+eval:
+  eval_metrics:
+  - psnr
+  - ssim
+  - lpips_loss

@@ -377,9 +377,12 @@ class LinearGM:
 
             to_save = self.distilled_dataset.get_to_save()
 
-            if self.cfg.distill_mode in ("physics", "physics_pyramid", "seathru_pyramid"):
+            if self.cfg.distill_mode in ("physics", "physics_pyramid", "seathru_pyramid", "physics_formation"):
                 sd = to_save["save_dict"]
-                save_dict.update({k: v.clone().detach() for k, v in sd.items()})
+                save_dict.update({
+                    k: (v.clone().detach() if torch.is_tensor(v) else v)
+                    for k, v in sd.items()
+                })
 
             syn_images, syn_labels = to_save["syn_data"]
             syn_images = syn_images.clone().detach()

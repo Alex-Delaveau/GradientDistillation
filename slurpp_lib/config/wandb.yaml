@@ -1,0 +1,3 @@
+wandb:
+  project: slurpp
+  reinit: True

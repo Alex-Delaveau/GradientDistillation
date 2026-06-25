@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Tuple
 
 import torch
 from torch import Tensor
@@ -10,9 +10,9 @@ from my_utils.log_utils import log_images
 
 from .base import BaseDistilledDataset
 import torch.nn.functional as F
-from .initializer.medoids_init import MedoidInitializer
-from .initializer.ppg_init import PPGInitializer
-from .initializer.random_init import RandomInitializer
+from src.initializer.sample.medoids_init import MedoidInitializer
+from src.initializer.priors.ppg_init import PPGInitializer
+from src.initializer.sample.random_init import RandomInitializer
 
 class PhysicsPyramidDataset(BaseDistilledDataset):
     """

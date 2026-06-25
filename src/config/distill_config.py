@@ -14,7 +14,7 @@ class DistillCfg(BaseCfg):
     iterations: int = 5000
     augs_per_batch: int = 10
 
-    distill_mode: Literal["pixel", "pyramid", "physics", "physics_pyramid", "physics_pyramid_ppg", "seathru_pyramid"] = "pyramid"
+    distill_mode: Literal["pixel", "pyramid", "physics", "physics_pyramid", "physics_pyramid_ppg", "seathru_pyramid", "physics_formation"] = "pyramid"
     aug_mode: Literal["standard", "none"] = "standard"
     decorrelate_color: bool = True
 
@@ -36,7 +36,6 @@ class DistillCfg(BaseCfg):
 
     train_crop_mode: Literal["center", "random"] = "random"
 
-    sample_init : Literal["medoids", "random"] = "medoids"
     ppg_checkpoint_path: str = ""
     ppg_input_channels: int = 3
 
@@ -44,3 +43,20 @@ class DistillCfg(BaseCfg):
     eval_epochs: int = 1000   # max epochs per probe run; early stopping usually terminates earlier
     eval_patience: int = 5    # early stopping patience for the periodic probe
     eval_num_eval: int = 3    # number of probe runs to average
+
+    # --- modèle de formation physique (PhysicsFormationDataset) ---
+    prior_init: Literal["none", "ppg", "slurpp"] = "none"
+    sample_init : Literal["medoids", "random"] = "medoids"
+    freeze_T: bool = False
+    freeze_B: bool = False
+    t_channels: Literal[1, 3] = 1
+    b_spatial: bool = False
+    clamp_I: bool = True
+
+    # SLURPP (requis seulement si prior_init="slurpp")
+    slurpp_root: str = ""
+    slurpp_checkpoint_path: str = ""
+
+    # PPG (requis si prior_init="ppg")
+    ppg_checkpoint_path: str = ""
+    ppg_input_channels: int = 3
