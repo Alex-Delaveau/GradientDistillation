@@ -29,7 +29,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export XFORMERS_DISABLED=1
 
 # SLURPP base checkpoint dir (contains stable-diffusion-2/)
-export BASE_CKPT_DIR=$WORK/projects/GradientDistillation/models/slurpp_base
+export BASE_CKPT_DIR=$WORK/models/SLURPP
 
 # Deps perso via la méthode IDRIS (plus de venv)
 export PYTHONUSERBASE=$WORK/python_user/h100
@@ -43,7 +43,7 @@ DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
 RUN_NAME=${RUN_NAME:-${MODEL}_distill_224_ipc1_augs5_slurpp_h100_80g}
 
-SLURPP_CKPT=${SLURPP_CKPT:-$WORK/projects/GradientDistillation/models/slurpp/checkpoint/diffusion}
+SLURPP_CKPT=${SLURPP_CKPT:-$WORK/models/SLURPP/slurpp/checkpoint/diffusion}
 
 srun python -m distillation.distill \
     --model=$MODEL \
