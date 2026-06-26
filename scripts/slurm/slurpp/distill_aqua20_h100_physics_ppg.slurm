@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=distill_aqua20_slurpp_h100
+#SBATCH --job-name=distill_aqua20_ppg_h100
 #SBATCH --account=rbw@h100
 #SBATCH --constraint=h100
 #SBATCH --qos=qos_gpu_h100-t3
@@ -28,8 +28,6 @@ export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export XFORMERS_DISABLED=1
 
-export BASE_CKPT_DIR=$WORK/models/SLURPP
-
 export PYTHONUSERBASE=$WORK/python_user/h100
 export PATH=$PYTHONUSERBASE/bin:$PATH
 
@@ -40,8 +38,8 @@ MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
 IPC=${IPC:-1}
-RUN_NAME=${RUN_NAME:-${MODEL}_${DATASET}_slurpp_ipc${IPC}_h100}
-SLURPP_CKPT=${SLURPP_CKPT:-$WORK/models/SLURPP/slurpp/checkpoint/diffusion}
+RUN_NAME=${RUN_NAME:-${MODEL}_${DATASET}_ppg_ipc${IPC}_h100}
+PPG_CKPT=${PPG_CKPT:-$WORK/models/PPG/I40000_E500_ppg.pth}
 
 srun python -m distillation.distill \
     --model=$MODEL \
@@ -56,11 +54,11 @@ srun python -m distillation.distill \
     --ipc=$IPC \
     --num_workers=24 \
     --distill_mode=physics_formation \
-    --prior_init=slurpp \
-    --slurpp_root=slurpp_lib \
-    --slurpp_checkpoint_path=$SLURPP_CKPT \
+    --prior_init=ppg \
+    --ppg_checkpoint_path=$PPG_CKPT \
+    --ppg_input_channels=3 \
     --sample_init=medoids \
-    --t_channels=3 \
+    --t_channels=1 \
     --b_spatial=False \
     --freeze_T=False \
     --freeze_B=False \
