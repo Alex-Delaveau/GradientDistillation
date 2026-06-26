@@ -59,8 +59,6 @@ srun python -m distillation.distill \
     --num_workers=24 \
     --distill_mode=physics_formation \
     --prior_init=slurpp \
-    --slurpp_dual=True \
-    --slurpp_device=cuda \
     --slurpp_root=slurpp_lib \
     --slurpp_checkpoint_path=$SLURPP_CKPT \
     --sample_init=medoids \

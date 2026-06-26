@@ -67,7 +67,7 @@ class PhysicsFormationDataset(BaseDistilledDataset):
             return SLURPPInitializer(
                 self.cfg.slurpp_root,
                 self.cfg.slurpp_checkpoint_path,
-                device="cpu",
+                device=self.device,
             )
         raise ValueError(f"prior_init unknown: {self.cfg.prior_init}")
 
