@@ -68,7 +68,7 @@ srun python -m distillation.distill \
     --pyramid_snapshot_it=500 \
     --image_log_it=500 \
     --checkpoint_it=100 \
-    --eval_it=250 \
+    --eval_it=100 \
     --eval_num_eval=1 \
     --eval_epochs=100 \
     --iterations=5000 \
