@@ -43,6 +43,7 @@ class DistillCfg(BaseCfg):
     eval_epochs: int = 1000   # max epochs per probe run; early stopping usually terminates earlier
     eval_patience: int = 5    # early stopping patience for the periodic probe
     eval_num_eval: int = 3    # number of probe runs to average
+    eval_metrics: Literal["accuracy", "f1"] = "accuracy"
 
     # --- modèle de formation physique (PhysicsFormationDataset) ---
     prior_init: Literal["none", "ppg", "slurpp"] = "none"

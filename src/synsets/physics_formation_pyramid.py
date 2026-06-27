@@ -128,6 +128,10 @@ class PhysicsFormationDataset(BaseDistilledDataset):
         # even when frozen
         syn_T = self._make_param(torch.logit(T01), trainable=not self.cfg.freeze_T)
         syn_B = self._make_param(torch.logit(B01), trainable=not self.cfg.freeze_B)
+
+        # save prior init for rmse
+        self.T_prior = T01.detach().clone()
+        self.B_prior = B01.detach().clone()
         _log(f"priors ready | T {tuple(syn_T.shape)} (frozen={self.cfg.freeze_T}) "
              f"B {tuple(syn_B.shape)} (frozen={self.cfg.freeze_B})")
 
@@ -310,3 +314,25 @@ class PhysicsFormationDataset(BaseDistilledDataset):
             self.syn_B.copy_(load_dict["B"])
         self.optimizer.load_state_dict(load_dict["opt_state"])
         _log(f"loaded from checkpoint ({len(self.pyramid_J)} pyramid levels)")
+
+
+    # ------ Metrics ------
+
+    @torch.no_grad()
+    def physics_metrics(self) -> dict:
+        """Quantitative monitoring of T/B vs their physical prior."""
+        T = torch.sigmoid(self.syn_T)
+        B = torch.sigmoid(self.syn_B)
+
+        t_drift = torch.sqrt(F.mse_loss(T, self.T_prior))
+        b_drift = torch.sqrt(F.mse_loss(B, self.B_prior))
+
+        return {
+            "physics/T_drift_rmse": t_drift.item(),
+            "physics/B_drift_rmse": b_drift.item(),
+            "physics/T_mean": T.mean().item(),
+            "physics/T_std": T.std().item(),
+            "physics/B_mean": B.mean().item(),
+            "physics/B_std": B.std().item(),
+            "physics/sat_frac": getattr(self, "_sat_frac", 0.0),
+        }

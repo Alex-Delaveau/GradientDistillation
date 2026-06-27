@@ -21,7 +21,7 @@ from .eval import Evaluator
 from models import get_fc, get_model
 from my_utils.device import DeviceSingleton
 from synsets import get_distilled_dataset
-from torchmetrics.classification import MulticlassAccuracy
+from torchmetrics.classification import MulticlassAccuracy, MulticlassF1Score
 
 
 class LinearGM:
@@ -152,12 +152,10 @@ class LinearGM:
             loss = self.match_gradients()
 
             if self.global_step % 10 == 0:
-                wandb.log(
-                    {
-                        "loss": loss,
-                    },
-                    step=self.global_step,
-                )
+                log_dict = {"loss": loss}
+                if hasattr(self.distilled_dataset, "physics_metrics"):
+                    log_dict.update(self.distilled_dataset.physics_metrics())
+                wandb.log(log_dict, step=self.global_step)
 
             if (
                 self.cfg.eval_it > 0
@@ -337,15 +335,26 @@ class LinearGM:
 
         top1_results = []
         for _ in range(self.cfg.eval_num_eval):
-            top1_metric = MulticlassAccuracy(
-                average="micro", num_classes=num_classes, top_k=1
-            ).to(DeviceSingleton.get())
-            top5_metric = (
-                MulticlassAccuracy(average="micro", num_classes=num_classes, top_k=5)
-                .to(DeviceSingleton.get())
-                if num_classes >= 5
-                else None
-            )
+            if(self.cfg.eval_metrics == "accuracy"):
+                top1_metric = MulticlassAccuracy(
+                    average="micro", num_classes=num_classes, top_k=1
+                ).to(DeviceSingleton.get())
+                top5_metric = (
+                    MulticlassAccuracy(average="micro", num_classes=num_classes, top_k=5)
+                    .to(DeviceSingleton.get())
+                    if num_classes >= 5
+                    else None
+                )
+            if(self.cfg.eval_metrics == "f1"):
+                top1_metric = MulticlassF1Score(
+                    average="macro", num_classes=num_classes, top_k=1
+                ).to(DeviceSingleton.get())
+                top5_metric = (
+                    MulticlassF1Score(average="macro", num_classes=num_classes, top_k=5)
+                    .to(DeviceSingleton.get())
+                    if num_classes >= 5
+                    else None
+                )
 
             evaluator = Evaluator(
                 train_loader=loader,

@@ -70,4 +70,5 @@ srun python -m distillation.distill \
     --eval_num_eval=1 \
     --eval_epochs=100 \
     --iterations=5000 \
+    --eval_metrics=f1 \
     "$@"
