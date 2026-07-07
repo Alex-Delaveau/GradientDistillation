@@ -1,6 +1,5 @@
 from typing import Literal
 
-import torch
 from .base_config import BaseCfg
 
 
