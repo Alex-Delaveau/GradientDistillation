@@ -14,7 +14,7 @@ class DistillCfg(BaseCfg):
     iterations: int = 5000
     augs_per_batch: int = 10
 
-    distill_mode: Literal["pixel", "pyramid", "physics", "physics_pyramid", "physics_pyramid_ppg", "seathru_pyramid", "physics_formation"] = "pyramid"
+    distill_mode: Literal["pixel", "pyramid"] = "pyramid"
     aug_mode: Literal["standard", "none"] = "standard"
     decorrelate_color: bool = True
 
@@ -36,16 +36,15 @@ class DistillCfg(BaseCfg):
 
     train_crop_mode: Literal["center", "random"] = "random"
 
-    ppg_checkpoint_path: str = ""
-    ppg_input_channels: int = 3
-
+    # --- Eval dataset during the distillation ---
     eval_it: int = 0          # run linear probe every N steps (0 = disabled)
     eval_epochs: int = 1000   # max epochs per probe run; early stopping usually terminates earlier
     eval_patience: int = 5    # early stopping patience for the periodic probe
     eval_num_eval: int = 3    # number of probe runs to average
     eval_metrics: Literal["accuracy", "f1"] = "accuracy"
 
-    # --- modèle de formation physique (PhysicsFormationDataset) ---
+    # --- physics formation model (PhysicsFormationDataset) ---
+    formation_mode: Literal["identity", "physics"] = "physics"
     prior_init: Literal["none", "ppg", "slurpp"] = "none"
     sample_init : Literal["medoids", "random"] = "medoids"
     freeze_T: bool = False

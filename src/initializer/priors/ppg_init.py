@@ -40,10 +40,10 @@ class PPGInitializer(BasePriorInitializer):
         Le dataset fait interpolation -> syn_res, reduction de canaux/spatial, logit.
         """
         p_a, p_t = self.physical_model(image)
-        T = p_t.clamp(0, 1)                  # [1,1,h,w]  (suppose p_t en [0,1])
-        B = ((p_a + 1) / 2).clamp(0, 1)      # [1,3,h,w]  (p_a en [-1,1])
+        T = torch.sigmoid(p_t)                  # [1,1,h,w]
+        B = ((p_a + 1) / 2).clamp(0, 1)      # [1,3,h,w]
         return {"T": T, "B": B}
 
     @staticmethod
     def compose(J, T, B):
-        return J * T + (1.0 - T) * B          # Koschmieder
+        return J * T + (1.0 - T) * B 

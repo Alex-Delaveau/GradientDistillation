@@ -20,6 +20,8 @@ class BasePriorInitializer(ABC):
         """Recombine les priors selon le modèle de formation de CET initializer."""
         ...
 
+    def formation_name(self) -> str:
+        return type(self).__name__
 
     def get_priors_from_path(self, path: str) -> dict:
         return self.get_priors(self.load_img(path))

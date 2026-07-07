@@ -386,7 +386,7 @@ class LinearGM:
 
             to_save = self.distilled_dataset.get_to_save()
 
-            if self.cfg.distill_mode in ("physics", "physics_pyramid", "seathru_pyramid", "physics_formation"):
+            if "save_dict" in to_save:
                 sd = to_save["save_dict"]
                 save_dict.update({
                     k: (v.clone().detach() if torch.is_tensor(v) else v)
