@@ -91,10 +91,10 @@ class PhysicsFormationDataset(BaseDistilledDataset):
 
 
     def init_optimizer(self):
-        lr_T = getattr(self.cfg, "lr_T", self.cfg.lr)
-        lr_B = getattr(self.cfg, "lr_B", self.cfg.lr)
+        lr_T = self.cfg.lr_T if self.cfg.lr_T is not None else self.cfg.lr
+        lr_B = self.cfg.lr_B if self.cfg.lr_B is not None else self.cfg.lr
         groups = [{"params": self.syn_J.parameters(), "lr": self.cfg.lr}]
-        if self.syn_T.requires_grad:                       # frozen -> excluded from optimizer
+        if self.syn_T.requires_grad:
             groups.append({"params": [self.syn_T], "lr": lr_T})
         if self.syn_B.requires_grad:
             groups.append({"params": [self.syn_B], "lr": lr_B})

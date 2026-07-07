@@ -51,6 +51,8 @@ class DistillCfg(BaseCfg):
     t_channels: Literal[1, 3] = 1
     b_spatial: bool = False
     clamp_I: bool = True
+    lr_T: float | None = None
+    lr_B: float | None = None
 
     # SLURPP (requis seulement si prior_init="slurpp")
     slurpp_root: str = ""
