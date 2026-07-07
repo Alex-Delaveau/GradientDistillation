@@ -36,12 +36,12 @@ export PATH=$PYTHONUSERBASE/bin:$PATH
 
 cd $WORK/projects/GradientDistillation
 
-# ---- experiment root: logs + wandb here, results symlinked in by the launcher ----
-EXP_ROOT=$WORK/projects/GradientDistillation/parameterization_exp
-export WANDB_DIR=$EXP_ROOT/wandb
+# ---- absolute output root (single source of truth, from launcher via --export) ----
+OUTPUT_ROOT=${OUTPUT_ROOT:-$WORK/projects/GradientDistillation/output/parameterization_exp}
+export WANDB_DIR=$OUTPUT_ROOT/wandb
 export WANDB_PROJECT=${WANDB_PROJECT:-parameterization_exp}
 export WANDB_NAME=$RUN_NAME
-mkdir -p "$WANDB_DIR"
+mkdir -p "$WANDB_DIR" "$OUTPUT_ROOT/results"
 
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
@@ -70,7 +70,7 @@ srun python -m distillation.distill \
     --dataset=$DATASET \
     --data_root=$DATA_ROOT \
     --run_name=$RUN_NAME \
-    --job_tag=parameterization_exp \
+    --job_tag=$OUTPUT_ROOT/results \
     --augs_per_batch=10 \
     --syn_res=224 \
     --real_res=224 \

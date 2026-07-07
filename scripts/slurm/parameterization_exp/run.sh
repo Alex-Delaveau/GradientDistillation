@@ -11,24 +11,20 @@
 set -euo pipefail
 
 SLURM_SCRIPT="$(dirname "$0")/parameterization_exp.slurm"
-EXP_ROOT="$WORK/projects/GradientDistillation/parameterization_exp"
-LOG_DIR="$EXP_ROOT/logs"
-WANDB_DIR="$EXP_ROOT/wandb"
-mkdir -p "$LOG_DIR" "$WANDB_DIR"
 
-# results live under logged_files/parameterization_exp/ (hardcoded in linear_gm);
-# expose them inside the exp folder so everything is findable in one place.
-ln -sfn "$WORK/projects/GradientDistillation/logged_files/parameterization_exp" "$EXP_ROOT/results"
+# --- absolute output root (single source of truth, propagated to the job) ---
+OUTPUT_ROOT="$WORK/projects/GradientDistillation/output/parameterization_exp"
+LOG_DIR="$OUTPUT_ROOT/logs"
+mkdir -p "$LOG_DIR" "$OUTPUT_ROOT/wandb" "$OUTPUT_ROOT/results"
 
 DRYRUN=${DRYRUN:-0}
 
-# --- resources (bump for slurpp: dual-UNet init is heavier) ---
-ACCOUNT="rbw@v100"
-CONSTRAINT="v100-32g"
-QOS="qos_gpu-t3"
+# --- resources (h100) ---
+ACCOUNT="rbw@h100"
+CONSTRAINT="h100"
+QOS="qos_gpu_h100-t3"
 TIME_DEFAULT="10:00:00"
 TIME_SLURPP="20:00:00"
-# For H100 instead: ACCOUNT="rbw@h100"; CONSTRAINT="h100"; (adjust qos accordingly)
 
 # maps 0/1 -> false/true for the CLI (pydantic-style bool parsing)
 bool() { [ "$1" = "1" ] && echo "true" || echo "false"; }
@@ -46,7 +42,7 @@ submit() {
         --constraint="$CONSTRAINT"
         --qos="$QOS"
         --time="$time"
-        --export=ALL,RUN_NAME="$run_name",DISTILL_MODE="$distill",FORMATION_MODE="$formation",PRIOR_INIT="$prior",SAMPLE_INIT="$sample",FREEZE_T="$(bool "$ft")",FREEZE_B="$(bool "$fb")"
+        --export=ALL,OUTPUT_ROOT="$OUTPUT_ROOT",RUN_NAME="$run_name",DISTILL_MODE="$distill",FORMATION_MODE="$formation",PRIOR_INIT="$prior",SAMPLE_INIT="$sample",FREEZE_T="$(bool "$ft")",FREEZE_B="$(bool "$fb")"
         "$SLURM_SCRIPT"
     )
 
@@ -90,6 +86,7 @@ done
 
 echo "-------------------------------------------"
 echo "$n jobs $([ "$DRYRUN" = "1" ] && echo 'preview (DRYRUN)' || echo 'submitted')"
-echo "logs   : $LOG_DIR"
-echo "wandb  : $WANDB_DIR"
-echo "results: $EXP_ROOT/results -> logged_files/parameterization_exp/"
+echo "output root: $OUTPUT_ROOT"
+echo "  logs   : $LOG_DIR"
+echo "  wandb  : $OUTPUT_ROOT/wandb"
+echo "  results: $OUTPUT_ROOT/results/aqua20/dinov2_vitb/<run_name>/"

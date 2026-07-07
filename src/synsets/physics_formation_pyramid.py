@@ -15,7 +15,7 @@ from src.initializer.priors import build_prior, compute_TB_priors
 from src.initializer.sample import build_sample_init, ordered_indices
 
 from src.my_utils.log_utils import log
-from src.synsets.syn_J import build_syn_J
+from .syn_J import build_syn_J
 
 
 
