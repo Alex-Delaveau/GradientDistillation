@@ -9,7 +9,7 @@ class DistillCfg(BaseCfg):
     job_tag: str = "distillation"
 
     ipc: int = 1
-    lr = 2e-3
+    lr: float = 2e-3
     iterations: int = 5000
     augs_per_batch: int = 10
 
