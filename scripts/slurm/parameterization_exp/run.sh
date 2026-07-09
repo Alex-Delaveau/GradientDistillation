@@ -21,6 +21,8 @@ DRYRUN=${DRYRUN:-0}
 
 SEEDS=${SEEDS:-"3407"}
 
+ONLY=${ONLY:-}
+
 # --- resources (h100) ---
 ACCOUNT="rbw@h100"
 CONSTRAINT="h100"
@@ -35,6 +37,10 @@ submit() {
     local run_name="$1" distill="$2" formation="$3" prior="$4" sample="$5" ft="$6" fb="$7"
     local time="$TIME_DEFAULT"
     [ "$prior" = "slurpp" ] && time="$TIME_SLURPP"
+
+    if [ -n "$ONLY" ] && [[ "$run_name" != *"$ONLY"* ]]; then
+        return
+    fi
 
     # one job per seed, each with its own run_name / logs / wandb dir
     for seed in $SEEDS; do
@@ -56,6 +62,7 @@ submit() {
         else
             sbatch "${args[@]}"
         fi
+        njobs=$((njobs+1))
     done
 }
 
@@ -90,9 +97,9 @@ for d in pixel pyramid; do
     done
 done
 
-nseeds=$(echo $SEEDS | wc -w)
 echo "-------------------------------------------"
-echo "$n variants x $nseeds seeds = $((n * nseeds)) jobs $([ "$DRYRUN" = "1" ] && echo 'preview (DRYRUN)' || echo 'submitted')"
+echo "$njobs jobs $([ "$DRYRUN" = "1" ] && echo 'preview (DRYRUN)' || echo 'submitted')"
+[ -n "$ONLY" ] && echo "filter ONLY='$ONLY'"
 echo "output root: $OUTPUT_ROOT"
 echo "  logs   : $LOG_DIR"
 echo "  wandb  : $OUTPUT_ROOT/wandb"
