@@ -68,6 +68,7 @@ submit() {
 
 MODEL=${MODEL:-dinov2_vitb}
 n=0
+njobs=0
 
 # --- 2 identity (prior/sample unused by the fork path) ---
 for d in pixel pyramid; do
