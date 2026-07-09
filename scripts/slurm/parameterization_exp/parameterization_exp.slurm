@@ -45,6 +45,7 @@ mkdir -p "$WANDB_DIR" "$OUTPUT_ROOT/results"
 
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
+SEED=${SEED:-3407}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
 
 # ---- prior checkpoints (match the proven scripts) ----
@@ -93,5 +94,6 @@ srun python -m distillation.distill \
     --eval_epochs=100 \
     --iterations=5000 \
     --eval_metrics=f1 \
+    --seed=$SEED \
     $PRIOR_ARGS \
     "$@"

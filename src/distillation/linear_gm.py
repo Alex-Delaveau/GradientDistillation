@@ -149,9 +149,14 @@ class LinearGM:
                 print(f"Saved pyramid snapshot at step {self.global_step}")
 
             # perform linear gradient matching
-            loss = self.match_gradients()
+            loss, grads = self.match_gradients()
+
+            gradient_metrics = self.distilled_dataset.gradient_metrics(grads)
+
 
             if self.global_step % 10 == 0:
+                wandb.log(gradient_metrics, step=self.global_step)
+
                 log_dict = {"loss": loss}
                 if hasattr(self.distilled_dataset, "physics_metrics"):
                     log_dict.update(self.distilled_dataset.physics_metrics())
@@ -218,10 +223,21 @@ class LinearGM:
                 if param.grad is not None:
                     param.grad /= AMP_SCALE
 
+
+        def _gnorm(params):
+            gs = [p.grad.reshape(-1) for p in params if p.grad is not None]
+            return torch.cat(gs).norm().item() if gs else 0.0
+
+        grads = {
+            "grad/norm_J": _gnorm(self.distilled_dataset.syn_J.parameters()),
+            "grad/norm_T": _gnorm([self.distilled_dataset.syn_T]),
+            "grad/norm_B": _gnorm([self.distilled_dataset.syn_B]),
+        }
+
         # update synthetic images (pyramids)
         self.distilled_dataset.optimizer.step()
 
-        return match_loss.item() / AMP_SCALE
+        return match_loss.item() / AMP_SCALE, grads
 
     def get_real_batch(self) -> Tuple[Tensor, Tensor]:
 

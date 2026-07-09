@@ -226,6 +226,36 @@ class PhysicsFormationDataset(BaseDistilledDataset):
             "physics/sat_frac": getattr(self, "_sat_frac", 0.0),
         }
     
+    @torch.no_grad()
+    def gradient_metrics(self, grads: dict) -> dict:
+        """Per-step optimization diagnostics. MUST be called every step, after optimizer.step().
+        `grads` holds raw grad norms captured in the loop before the step."""
+        out = dict(grads)
+        T = torch.sigmoid(self.syn_T)
+        J_vec = torch.cat([p.detach().reshape(-1) for p in self.syn_J.parameters()])
+
+        # per-step parameter motion
+        prev_T = getattr(self, "_prev_T", None)
+        if prev_T is not None and prev_T.shape == T.shape:
+            out["grad/T_step_rmse"] = torch.sqrt(F.mse_loss(T, prev_T)).item()
+
+        prev_J = getattr(self, "_prev_J", None)
+        if prev_J is not None and prev_J.numel() == J_vec.numel():
+            dJ = J_vec - prev_J
+            out["grad/J_step_norm"] = dJ.norm().item()
+            # cosine of successive J updates: ~+1 = straight descent, <0 = zig-zag
+            prev_dJ = getattr(self, "_prev_dJ", None)
+            if prev_dJ is not None and prev_dJ.numel() == dJ.numel():
+                out["grad/J_step_cos"] = (torch.dot(dJ, prev_dJ) /
+                                        (dJ.norm() * prev_dJ.norm() + 1e-12)).item()
+            self._prev_dJ = dJ
+        else:
+            self._prev_dJ = None  # J dim changed (pyramid extend) -> reset cache
+
+        self._prev_T = T.clone()
+        self._prev_J = J_vec.clone()
+        return out
+    
     # ------ Priors ------
 
     def _free_prior_pipeline(self, prior_init, sample_init):

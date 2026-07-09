@@ -19,6 +19,8 @@ mkdir -p "$LOG_DIR" "$OUTPUT_ROOT/wandb" "$OUTPUT_ROOT/results"
 
 DRYRUN=${DRYRUN:-0}
 
+SEEDS=${SEEDS:-"3407"}
+
 # --- resources (h100) ---
 ACCOUNT="rbw@h100"
 CONSTRAINT="h100"
@@ -34,23 +36,27 @@ submit() {
     local time="$TIME_DEFAULT"
     [ "$prior" = "slurpp" ] && time="$TIME_SLURPP"
 
-    local args=(
-        --job-name="pexp_${run_name}"
-        --output="$LOG_DIR/%j_${run_name}.out"
-        --error="$LOG_DIR/%j_${run_name}.err"
-        --account="$ACCOUNT"
-        --constraint="$CONSTRAINT"
-        --qos="$QOS"
-        --time="$time"
-        --export=ALL,OUTPUT_ROOT="$OUTPUT_ROOT",RUN_NAME="$run_name",DISTILL_MODE="$distill",FORMATION_MODE="$formation",PRIOR_INIT="$prior",SAMPLE_INIT="$sample",FREEZE_T="$(bool "$ft")",FREEZE_B="$(bool "$fb")"
-        "$SLURM_SCRIPT"
-    )
+    # one job per seed, each with its own run_name / logs / wandb dir
+    for seed in $SEEDS; do
+        local sname="${run_name}_s${seed}"
+        local args=(
+            --job-name="pexp_${sname}"
+            --output="$LOG_DIR/%j_${sname}.out"
+            --error="$LOG_DIR/%j_${sname}.err"
+            --account="$ACCOUNT"
+            --constraint="$CONSTRAINT"
+            --qos="$QOS"
+            --time="$time"
+            --export=ALL,OUTPUT_ROOT="$OUTPUT_ROOT",RUN_NAME="$sname",SEED="$seed",DISTILL_MODE="$distill",FORMATION_MODE="$formation",PRIOR_INIT="$prior",SAMPLE_INIT="$sample",FREEZE_T="$(bool "$ft")",FREEZE_B="$(bool "$fb")"
+            "$SLURM_SCRIPT"
+        )
 
-    if [ "$DRYRUN" = "1" ]; then
-        echo "sbatch ${args[*]}"
-    else
-        sbatch "${args[@]}"
-    fi
+        if [ "$DRYRUN" = "1" ]; then
+            echo "sbatch ${args[*]}"
+        else
+            sbatch "${args[@]}"
+        fi
+    done
 }
 
 MODEL=${MODEL:-dinov2_vitb}
@@ -84,8 +90,9 @@ for d in pixel pyramid; do
     done
 done
 
+nseeds=$(echo $SEEDS | wc -w)
 echo "-------------------------------------------"
-echo "$n jobs $([ "$DRYRUN" = "1" ] && echo 'preview (DRYRUN)' || echo 'submitted')"
+echo "$n variants x $nseeds seeds = $((n * nseeds)) jobs $([ "$DRYRUN" = "1" ] && echo 'preview (DRYRUN)' || echo 'submitted')"
 echo "output root: $OUTPUT_ROOT"
 echo "  logs   : $LOG_DIR"
 echo "  wandb  : $OUTPUT_ROOT/wandb"
