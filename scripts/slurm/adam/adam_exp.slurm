@@ -81,7 +81,7 @@ srun python -m distillation.distill \
     --train_crop_mode=random \
     --ipc=1 \
     --num_workers=24 \
-    --distill_optimizer=$OPTIM \
+    --distill_opt=$OPTIM \
     --distill_mode=$DISTILL_MODE \
     --formation_mode=$FORMATION_MODE \
     --prior_init=$PRIOR_INIT \
