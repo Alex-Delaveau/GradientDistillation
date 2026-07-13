@@ -227,12 +227,18 @@ class LinearGM:
         def _gnorm(params):
             gs = [p.grad.reshape(-1) for p in params if p.grad is not None]
             return torch.cat(gs).norm().item() if gs else 0.0
+        
+        ds = self.distilled_dataset
 
-        grads = {
-            "grad/norm_J": _gnorm(self.distilled_dataset.syn_J.parameters()),
-            "grad/norm_T": _gnorm([self.distilled_dataset.syn_T]),
-            "grad/norm_B": _gnorm([self.distilled_dataset.syn_B]),
-        }
+        all_params = [p for g in ds.optimizer.param_groups for p in g["params"]]
+        grads = {"grad/norm_total": _gnorm(all_params)}
+
+        if hasattr(ds, "syn_J"):
+            grads["grad/norm_J"] = _gnorm(ds.syn_J.parameters())
+        if hasattr(ds, "syn_T"):
+            grads["grad/norm_T"] = _gnorm([ds.syn_T])
+        if hasattr(ds, "syn_B"):
+            grads["grad/norm_B"] = _gnorm([ds.syn_B])
 
         # update synthetic images (pyramids)
         self.distilled_dataset.optimizer.step()
