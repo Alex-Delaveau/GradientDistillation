@@ -22,6 +22,14 @@ class BaseDistilledDataset:
 
         self.color_mean = torch.tensor([0.48, 0.46, 0.41]).to(DeviceSingleton.get())
 
+    def build_optimizer(self, param_groups: list) -> torch.optim.Optimizer:
+        opt = getattr(self.cfg, "distill_opt", "sgd")
+        if opt == "sgd":
+            return torch.optim.SGD(param_groups, momentum=0.5)
+        if opt == "adam":
+            return torch.optim.Adam(param_groups)
+        raise NotImplementedError(f"unknown distill_opt: {opt}")
+
     def get_data(self) -> Tuple[Tensor, Tensor]:
         raise NotImplementedError
     
@@ -38,6 +46,18 @@ class BaseDistilledDataset:
 
     def get_save_dict(self):
         return
+    
+    @torch.no_grad()
+    def gradient_metrics(self, grads: dict) -> dict:
+        gs = [
+            p.grad.reshape(-1)
+            for g in self.optimizer.param_groups
+            for p in g["params"]
+            if p.grad is not None
+        ]
+        out = dict(grads)
+        out["grad/norm_total"] = torch.cat(gs).norm().item() if gs else 0.0
+        return out
 
     def load_from_dict(self, load_dict: dict):
         return

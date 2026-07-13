@@ -98,7 +98,7 @@ class PhysicsFormationDataset(BaseDistilledDataset):
             groups.append({"params": [self.syn_T], "lr": lr_T})
         if self.syn_B.requires_grad:
             groups.append({"params": [self.syn_B], "lr": lr_B})
-        return torch.optim.Adam(groups)
+        return self.build_optimizer(groups)
 
     # ----- forward -----
 
@@ -228,9 +228,19 @@ class PhysicsFormationDataset(BaseDistilledDataset):
     
     @torch.no_grad()
     def gradient_metrics(self, grads: dict) -> dict:
-        """Per-step optimization diagnostics. MUST be called every step, after optimizer.step().
-        `grads` holds raw grad norms captured in the loop before the step."""
-        out = dict(grads)
+        """Per-step optimization diagnostics. MUST be called every step, right after
+        optimizer.step() and before the next zero_grad(): .grad is still populated there."""
+        out = super().gradient_metrics(grads)   # grad/norm_total
+
+        def _gnorm(params):
+            gs = [p.grad.reshape(-1) for p in params if p.grad is not None]
+            return torch.cat(gs).norm().item() if gs else 0.0
+
+        # raw grad norms per physical component (0.0 when frozen: .grad stays None)
+        out["grad/norm_J"] = _gnorm(self.syn_J.parameters())
+        out["grad/norm_T"] = _gnorm([self.syn_T])
+        out["grad/norm_B"] = _gnorm([self.syn_B])
+
         T = torch.sigmoid(self.syn_T)
         J_vec = torch.cat([p.detach().reshape(-1) for p in self.syn_J.parameters()])
 

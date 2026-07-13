@@ -22,10 +22,7 @@ class PyramidDataset(BaseDistilledDataset):
         self.optimizer = self.init_optimizer()
 
     def init_optimizer(self):
-        optimizer = torch.optim.Adam(
-            [{"params": p, "lr": self.cfg.lr} for p in self.pyramid]
-        )
-        return optimizer
+        return self.build_optimizer([{"params": p, "lr": self.cfg.lr} for p in self.pyramid])
 
     def init_synset(self) -> Tuple[List[Tensor], Tensor]:
 
@@ -59,53 +56,46 @@ class PyramidDataset(BaseDistilledDataset):
 
         return pyramid, syn_labels
 
+    def _rebuild_optimizer_keeping_state(self):
+        saved_state = dict(self.optimizer.state)
+        self.optimizer = self.init_optimizer()
+        self.optimizer.state.update(saved_state)
+
     def extend_pyramid(self) -> bool:
 
-        print("extending pyramid...")
-
         old_len = len(self.pyramid)
-        new_len = len(self.pyramid) + 1
-
+        new_len = old_len + 1
         old_res = self.pyramid[0].shape[-1]
 
         if old_res == self.cfg.syn_res:
             print("already max res")
             return False
-        else:
-            new_res = old_res * 2
-            # to make it work when res is not power of 2
-            if new_res > self.cfg.syn_res:
-                new_res = self.cfg.syn_res
-            print("new res: {}".format(new_res))
+        new_res = min(old_res * 2, self.cfg.syn_res)
+        print("new res: {}".format(new_res))
 
         num_images = self.pyramid[-1].shape[0]
 
-        self.pyramid = [p.detach().clone() * old_len / new_len for p in self.pyramid]
-        if self.cfg.init_mode == "zero":
-            new_layer = torch.sum(
-                torch.stack(
-                    [
-                        torch.nn.functional.interpolate(
-                            p, (new_res, new_res), antialias=False, mode="bilinear"
-                        )
-                        for p in self.pyramid
-                    ]
-                ),
-                dim=0,
-            )
-            new_layer = new_layer / old_len
-        else:
-            new_layer = (
-                torch.randn((num_images, 3, new_res, new_res), device=DeviceSingleton.get()) / new_len
-            )
+        # rescale in-place -> keep object identity (= optimizer state of existing levels),
+        # mirroring PyramidJ.extend()
+        with torch.no_grad():
+            for p in self.pyramid:
+                p.mul_(old_len / new_len)
 
+            if self.cfg.init_mode == "zero":
+                new_layer = torch.sum(torch.stack([
+                    torch.nn.functional.interpolate(
+                        p, (new_res, new_res), antialias=False, mode="bilinear")
+                    for p in self.pyramid
+                ]), dim=0) / old_len
+            else:
+                new_layer = torch.randn(
+                    (num_images, 3, new_res, new_res), device=DeviceSingleton.get()
+                ) / new_len
+
+        new_layer.requires_grad_(True)
         self.pyramid.insert(0, new_layer)
 
-        for p in self.pyramid:
-            p.requires_grad_(True)
-
-        self.optimizer = self.init_optimizer()
-
+        self._rebuild_optimizer_keeping_state()   # same as physics
         return True
 
     def decode_pyramid(self, n_levels: int = None) -> Tensor:

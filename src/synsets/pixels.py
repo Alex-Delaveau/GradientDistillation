@@ -25,24 +25,7 @@ class PixelDataset(BaseDistilledDataset):
         self.optimizer = self.init_optimizer()
 
     def init_optimizer(self):
-        if self.cfg.distill_opt == "sgd":
-            optimizer = torch.optim.SGD(
-                [
-                    # {'params': self.syn_lr, 'lr': self.args.lr_lr},
-                    {"params": self.syn_images, "lr": self.cfg.lr},
-                ],
-                momentum=0.5,
-            )
-        elif self.cfg.distill_opt == "adam":
-            optimizer = torch.optim.Adam(
-                [
-                    # {'params': self.syn_lr, 'lr': self.args.lr_lr},
-                    {"params": self.syn_images, "lr": self.cfg.lr},
-                ]
-            )
-        else:
-            raise NotImplementedError
-        return optimizer
+        return self.build_optimizer([{"params": [self.syn_images], "lr": self.cfg.lr}])
 
     def init_synset(self) -> Tuple[Tensor, Tensor]:
 
