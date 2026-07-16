@@ -48,7 +48,7 @@ export PATH=$PYTHONUSERBASE/bin:$PATH
 
 # slurpp_lib expose les packages "slurpp" et "utils" -- ajout explicite,
 # independant de la version Python (pas de chemin site-packages en dur)
-export PYTHONPATH=$WORK/projects/slurpp_lib:$PYTHONPATH
+export PYTHONPATH=$WORK/projects/GradientDistillation/slurpp_lib:$PYTHONPATH
 
 
 # ---- CONFIG : a adapter ----
