@@ -9,8 +9,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --hint=nomultithread
 #SBATCH --time=00:30:00
-#SBATCH --output=logs/latent_feas_%j.out
-#SBATCH --error=logs/latent_feas_%j.err
+#SBATCH --output=output/latent_feasibility/latent_feas_%j.out
+#SBATCH --error=output/latent_feasibility/latent_feas_%j.err
 
 # ============================================================
 # Test de faisabilite : optimisation en espace latent SLURPP
@@ -48,7 +48,7 @@ export PATH=$PYTHONUSERBASE/bin:$PATH
 
 # slurpp_lib expose les packages "slurpp" et "utils" -- ajout explicite,
 # independant de la version Python (pas de chemin site-packages en dur)
-export PYTHONPATH=$WORK/projects/GradientDistillation/slurpp_lib:$PYTHONPATH
+export PYTHONPATH=$WORK/projects/GradientDistillation/slurpp_lib:${PYTHONPATH:-}    
 
 
 # ---- CONFIG : a adapter ----
