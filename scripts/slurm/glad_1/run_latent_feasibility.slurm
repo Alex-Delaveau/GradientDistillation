@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=latent_feas
 #SBATCH --account=rbw@h100
-#SBATCH -C h100
+#SBATCH --constraint=h100
+#SBATCH --qos=qos_gpu_h100-t3
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
@@ -28,16 +29,27 @@ echo "== Job $SLURM_JOB_ID demarre sur $(hostname) a $(date) =="
 
 # ---- Environnement IDRIS ----
 module purge
-module load pytorch-gpu/py3/2.4.0   # adapter a la version utilisee pour les runs de distillation
+module load arch/h100
+module load pytorch-gpu/py3/2.8.0
+
+# ---- caches / offline (evite tout appel reseau depuis un noeud de calcul) ----
+export TORCH_HOME=$WORK/torch_cache
+export HF_HOME=$WORK/hf_cache
+export XDG_CACHE_HOME=$WORK/.cache
+export HF_DATASETS_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_HUB_OFFLINE=1
+export XFORMERS_DISABLED=1
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # ---- PYTHONUSERBASE (pattern H100 du projet) ----
 export PYTHONUSERBASE=$WORK/python_user/h100
-export PYTHONPATH=$PYTHONUSERBASE/lib/python3.11/site-packages:$PYTHONPATH
+export PATH=$PYTHONUSERBASE/bin:$PATH
 
-# slurpp_lib expose les packages "slurpp" et "utils" (imports du script) --
-# si slurpp_lib n'est pas deja installe (pip install -e) dans l'env H100,
-# l'ajouter explicitement au PYTHONPATH :
+# slurpp_lib expose les packages "slurpp" et "utils" -- ajout explicite,
+# independant de la version Python (pas de chemin site-packages en dur)
 export PYTHONPATH=$WORK/projects/slurpp_lib:$PYTHONPATH
+
 
 # ---- CONFIG : a adapter ----
 PROJECT_DIR=$WORK/projects/GradientDistillation
@@ -65,7 +77,7 @@ echo "  BASE_CKPT_DIR = $BASE_CKPT_DIR"
 nvidia-smi --query-gpu=name,memory.total,memory.used --format=csv
 
 echo "== Lancement du script de faisabilite =="
-python exp/latent_feasibility.py \
+python exp/glad_slurpp.py \
     --image "$MEDOID_IMAGE" \
     --slurpp-root "$SLURPP_ROOT" \
     --checkpoint "$SLURPP_CKPT" \
