@@ -44,7 +44,7 @@ class DistillCfg(BaseCfg):
     eval_metrics: Literal["accuracy", "f1"] = "accuracy"
 
     # --- physics formation model (PhysicsFormationDataset) ---
-    formation_mode: Literal["identity", "physics"] = "physics"
+    formation_mode: Literal["identity", "physics", "latent"] = "physics"
     prior_init: Literal["none", "ppg", "slurpp"] = "none"
     sample_init : Literal["medoids", "random"] = "medoids"
     freeze_T: bool = False
@@ -62,3 +62,8 @@ class DistillCfg(BaseCfg):
     # PPG (requis si prior_init="ppg")
     ppg_checkpoint_path: str = ""
     ppg_input_channels: int = 3
+
+    # Latent
+    latent_mode: Literal["predlatent"] = "predlatent" 
+    latent_chunk: int = 2 
+    latent_res: int = 512
