@@ -237,9 +237,13 @@ class LatentFormationDataset(BaseDistilledDataset):
         I = self.compose(J, T, B)
         if getattr(self.cfg, "clamp_I", True):
             I = I.clamp(0.0, 1.0)
+        r = getattr(self.cfg, "snapshot_res", 256)
+        def down(x):
+            return F.interpolate(x, size=(r, r), mode="bilinear",
+                                align_corners=False).half().cpu()
         return {
-            "I": I.cpu(), "J": J.clamp(0, 1).cpu(),
-            "T": T.clamp(0, 1).cpu(), "B": B.clamp(0, 1).cpu(),
+            "I": down(I), "J": down(J.clamp(0, 1)),
+            "T": down(T.clamp(0, 1)), "B": down(B.clamp(0, 1)),
             "formation": self.formation_name,
             "latent_mode": "predlatent",
         }

@@ -104,12 +104,13 @@ srun python -m distillation.distill \
     --slurpp_root=$SLURPP_ROOT \
     --slurpp_checkpoint_path=$SLURPP_CKPT \
     --clamp_I=True \
-    --image_log_it=500 \
+    --image_log_it=100 \
     --checkpoint_it=100 \
     --eval_it=100 \
     --eval_num_eval=1 \
     --eval_epochs=100 \
-    --iterations=5000 \
+    --iterations=2000 \
+    --pyramid_snapshot_it=100 \
     --eval_metrics=f1 \
     --seed=$SEED \
     "$@"
