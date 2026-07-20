@@ -73,6 +73,9 @@ LATENT_RES=${LATENT_RES:-512}
 LR=${LR:-1e-3}
 OPTIM=${OPTIM:-adam}
 
+
+RUN_NAME=${RUN_NAME:-${MODEL}_latent_${LATENT_MODE}_medoids_${OPTIM}_lr${LR}}
+
 # ---- prior checkpoints (latent mode requires slurpp) ----
 SLURPP_ROOT=${SLURPP_ROOT:-slurpp_lib}
 SLURPP_CKPT=${SLURPP_CKPT:-$WORK/models/SLURPP/slurpp/checkpoint/diffusion}
