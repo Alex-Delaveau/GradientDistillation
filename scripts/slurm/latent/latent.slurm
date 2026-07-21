@@ -19,8 +19,6 @@
 #SBATCH --cpus-per-task=24
 #SBATCH --hint=nomultithread
 #SBATCH --time=10:00:00
-#SBATCH --output=output/latent_exp/logs/%x_%j.out
-#SBATCH --error=output/latent_exp/logs/%x_%j.err
 set -e
 
 module purge
@@ -74,7 +72,7 @@ LR=${LR:-1e-3}
 OPTIM=${OPTIM:-adam}
 
 
-RUN_NAME=${RUN_NAME:-${MODEL}_latent_${LATENT_MODE}_medoids_${OPTIM}_lr${LR}}
+RUN_NAME=${RUN_NAME:-${MODEL}_latent_${LATENT_MODE}_medoids_${OPTIM}_lr${LR}_s${SEED}}
 
 # ---- prior checkpoints (latent mode requires slurpp) ----
 SLURPP_ROOT=${SLURPP_ROOT:-slurpp_lib}

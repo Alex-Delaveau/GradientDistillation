@@ -69,7 +69,7 @@ class LatentFormationDataset(BaseDistilledDataset):
     """
     Distilled dataset parameterized in SLURPP's latent space (GLaD-style).
 
-    latent_mode = "predlatent" (implemented):
+    latent_mode = "predlatent" (implemented)
         The frozen SLURPP dual-UNet runs ONCE per medoid at init to produce
         pred_latent [N, 12, h, w] (clear/bc/ill stacked, post DDIM step,
         pre VAE-decode). pred_latent is then THE optimized parameter; the
@@ -78,6 +78,12 @@ class LatentFormationDataset(BaseDistilledDataset):
             I = compose(J, T, B) -> resize to cfg.syn_res
         Physics constraint acts as initialization only (no permanent
         network guard, contrary to the future "z_u" mode).
+
+    latent_mode = "decoder_only" (ablation)
+        Single SD-VAE latent [N, 4, h, w] initialized by encode_rgb(medoid),
+        no dual-UNet, no physics composition: I = vae_decode(z).
+        Isolates generic latent parameterization from SLURPP's
+        physics-factorized dual-latent structure.
 
     Feasibility findings this design relies on (job 1932676):
         - VAE round-trips T/B/J faithfully at 512 (>= 38 dB) -> all-latent OK
@@ -93,6 +99,8 @@ class LatentFormationDataset(BaseDistilledDataset):
                                  pixel-space LRs are meaningless here)
     """
 
+    _COMP_SLICES = (("clear", slice(0, 4)), ("bc", slice(4, 8)), ("ill", slice(8, 12)))
+
     def __init__(self, train_dataset: BaseRealDataset, cfg: DistillCfg,
                  backbone: torch.nn.Module = None, num_feat: int = None):
         super().__init__()
@@ -103,8 +111,9 @@ class LatentFormationDataset(BaseDistilledDataset):
         self.chunk = getattr(cfg, "latent_chunk", 2)
         self.latent_res = getattr(cfg, "latent_res", 512)
 
-        assert getattr(cfg, "latent_mode", "predlatent") == "predlatent", \
-            "only latent_mode=predlatent is implemented for now"
+        self.latent_mode = getattr(cfg, "latent_mode", "predlatent")
+        assert self.latent_mode in ("predlatent", "decoder_only"), \
+            f"unknown latent_mode: {self.latent_mode}"
 
         (self.pred_latent, self.syn_labels) = self.init_synset(backbone, num_feat)
         self.optimizer = self.init_optimizer()
@@ -136,16 +145,28 @@ class LatentFormationDataset(BaseDistilledDataset):
 
         self._scale = pipe.rgb_latent_scale_factor
 
-        log(type(self).__name__,
-            f"computing pred_latent init for {len(self.sample_indices)} medoids "
-            f"@ {self.latent_res}px (chunk={self.chunk})")
-        latents = []
-        with torch.no_grad():
-            for i in self.sample_indices:
-                img01 = self._load_medoid(i)                       # [1,3,R,R] in [0,1]
-                z_u = self._encode_rgb(pipe, img01)                # [1,4,r,r]
-                latents.append(self._compute_pred_latent(pipe, z_u))
-        pred0 = torch.cat(latents, dim=0)                          # [N,12,r,r]
+        if self.latent_mode == "decoder_only":
+            # ablation: raw SD-VAE latent, no dual-UNet, no physics
+            log(type(self).__name__,
+                f"computing encode_rgb init for {len(self.sample_indices)} medoids "
+                f"@ {self.latent_res}px (decoder_only ablation)")
+            latents = []
+            with torch.no_grad():
+                for i in self.sample_indices:
+                    img01 = self._load_medoid(i)
+                    latents.append(self._encode_rgb(pipe, img01))   # [1,4,r,r]
+        else:  # predlatent
+            log(type(self).__name__,
+                f"computing pred_latent init for {len(self.sample_indices)} medoids "
+                f"@ {self.latent_res}px (chunk={self.chunk})")
+            latents = []
+            with torch.no_grad():
+                for i in self.sample_indices:
+                    img01 = self._load_medoid(i)
+                    z_u = self._encode_rgb(pipe, img01)
+                    latents.append(self._compute_pred_latent(pipe, z_u))
+
+        pred0 = torch.cat(latents, dim=0)
 
         self.latent_prior = pred0.detach().clone()                 # drift reference
         pred_latent = pred0.detach().clone().requires_grad_(True)
@@ -209,11 +230,23 @@ class LatentFormationDataset(BaseDistilledDataset):
         T = self._vae_decode(ill_lat)
         return J, B, T
 
+    def _decode_only(self, pred_latent_chunk: Tensor):
+        return self._vae_decode(pred_latent_chunk), None, None
+
+    @staticmethod
+    def _compose_identity(J, T, B):
+        return J
+
+    def _decode_compose_fns(self):
+        if self.latent_mode == "decoder_only":
+            return self._decode_only, self._compose_identity
+        return self._decode_JBT, self.compose
+
     # ----- forward -----
 
     def get_data(self) -> Tuple[Tensor, Tensor]:
-        I = ChunkedDecodeCompose.apply(
-            self.pred_latent, self._decode_JBT, self.compose, self.chunk)
+        decode_fn, compose_fn = self._decode_compose_fns()
+        I = ChunkedDecodeCompose.apply(self.pred_latent, decode_fn, compose_fn, self.chunk)
         I = F.interpolate(I, size=(self.cfg.syn_res, self.cfg.syn_res),
                           mode="bilinear", align_corners=False)
         if getattr(self.cfg, "clamp_I", True):
@@ -225,49 +258,60 @@ class LatentFormationDataset(BaseDistilledDataset):
 
     @torch.no_grad()
     def _decode_all(self):
+        decode_fn, _ = self._decode_compose_fns()
         Js, Bs, Ts = [], [], []
         for i in range(0, self.N, self.chunk):
-            J, B, T = self._decode_JBT(self.pred_latent[i:i + self.chunk])
-            Js.append(J); Bs.append(B); Ts.append(T)
-        return torch.cat(Js), torch.cat(Bs), torch.cat(Ts)
+            J, B, T = decode_fn(self.pred_latent[i:i + self.chunk])
+            Js.append(J)
+            if B is not None: Bs.append(B)
+            if T is not None: Ts.append(T)
+        cat = lambda xs: torch.cat(xs) if xs else None
+        return torch.cat(Js), cat(Bs), cat(Ts)
 
     @torch.no_grad()
     def get_snapshot(self) -> dict:
         J, B, T = self._decode_all()
-        I = self.compose(J, T, B)
+        _, compose_fn = self._decode_compose_fns()
+        I = compose_fn(J, T, B)
         if getattr(self.cfg, "clamp_I", True):
             I = I.clamp(0.0, 1.0)
         r = getattr(self.cfg, "snapshot_res", 256)
         def down(x):
             return F.interpolate(x, size=(r, r), mode="bilinear",
-                                align_corners=False).half().cpu()
-        return {
+                                 align_corners=False).half().cpu()
+        snap = {
             "I": down(I), "J": down(J.clamp(0, 1)),
-            "T": down(T.clamp(0, 1)), "B": down(B.clamp(0, 1)),
             "formation": self.formation_name,
-            "latent_mode": "predlatent",
+            "latent_mode": self.latent_mode,
         }
+        if T is not None:
+            snap["T"] = down(T.clamp(0, 1))
+            snap["B"] = down(B.clamp(0, 1))
+        return snap
 
     @torch.no_grad()
     def get_to_save(self) -> dict:
         J, B, T = self._decode_all()
-        I = self.compose(J, T, B)
+        _, compose_fn = self._decode_compose_fns()
+        I = compose_fn(J, T, B)
         if getattr(self.cfg, "clamp_I", True):
             I = I.clamp(0.0, 1.0)
         I_out = F.interpolate(I, size=(self.cfg.syn_res, self.cfg.syn_res),
                               mode="bilinear", align_corners=False)
         sample_paths = [self.train_dataset.get_path(i) for i in self.sample_indices]
-        return {
-            "syn_data": (I_out, self.syn_labels),
-            "save_dict": {
-                "pred_latent": self.pred_latent.detach(),
-                "latent_prior": self.latent_prior,
-                "syn_J": J.clamp(0, 1), "syn_T": T.clamp(0, 1), "syn_B": B.clamp(0, 1),
-                "sample_indices": torch.tensor(self.sample_indices),
-                "sample_paths": sample_paths,
-                "sample_init": self.cfg.sample_init,
-            },
+        save_dict = {
+            "pred_latent": self.pred_latent.detach(),
+            "latent_prior": self.latent_prior,
+            "syn_J": J.clamp(0, 1),
+            "sample_indices": torch.tensor(self.sample_indices),
+            "sample_paths": sample_paths,
+            "sample_init": self.cfg.sample_init,
+            "latent_mode": self.latent_mode,
         }
+        if T is not None:
+            save_dict["syn_T"] = T.clamp(0, 1)
+            save_dict["syn_B"] = B.clamp(0, 1)
+        return {"syn_data": (I_out, self.syn_labels), "save_dict": save_dict}
 
     def upkeep(self, step: int = None):
         pass  # no pyramid schedule in latent mode
@@ -287,6 +331,9 @@ class LatentFormationDataset(BaseDistilledDataset):
         }
 
     def load_from_dict(self, load_dict: dict):
+        assert load_dict["pred_latent"].shape == self.pred_latent.shape, \
+            f"checkpoint shape {tuple(load_dict['pred_latent'].shape)} != " \
+            f"current {tuple(self.pred_latent.shape)} — latent_mode mismatch?"
         with torch.no_grad():
             self.pred_latent.copy_(load_dict["pred_latent"])
         self.optimizer = self.init_optimizer()
@@ -295,27 +342,29 @@ class LatentFormationDataset(BaseDistilledDataset):
 
     # ------ Metrics ------
 
+    
+
     @torch.no_grad()
     def physics_metrics(self) -> dict:
         drift = torch.sqrt(F.mse_loss(self.pred_latent, self.latent_prior))
-        per_comp = {}
-        for name, sl in (("clear", slice(0, 4)), ("bc", slice(4, 8)), ("ill", slice(8, 12))):
-            per_comp[f"latent/{name}_drift_rmse"] = torch.sqrt(F.mse_loss(
-                self.pred_latent[:, sl], self.latent_prior[:, sl])).item()
-        return {
+        out = {
             "latent/drift_rmse": drift.item(),
             "latent/norm": self.pred_latent.norm().item(),
             "physics/sat_frac": getattr(self, "_sat_frac", 0.0),
-            **per_comp,
         }
+        if self.pred_latent.shape[1] == 12:
+            for name, sl in self._COMP_SLICES:
+                out[f"latent/{name}_drift_rmse"] = torch.sqrt(F.mse_loss(
+                    self.pred_latent[:, sl], self.latent_prior[:, sl])).item()
+        return out
 
     @torch.no_grad()
     def gradient_metrics(self, grads: dict) -> dict:
-        out = super().gradient_metrics(grads)  # grad/norm_total
+        out = super().gradient_metrics(grads)
         g = self.pred_latent.grad
         out["grad/norm_latent"] = g.norm().item() if g is not None else 0.0
-        if g is not None:
-            for name, sl in (("clear", slice(0, 4)), ("bc", slice(4, 8)), ("ill", slice(8, 12))):
+        if g is not None and g.shape[1] == 12:
+            for name, sl in self._COMP_SLICES:
                 out[f"grad/norm_latent_{name}"] = g[:, sl].norm().item()
         return out
 

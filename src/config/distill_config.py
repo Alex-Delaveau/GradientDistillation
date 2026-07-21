@@ -64,6 +64,6 @@ class DistillCfg(BaseCfg):
     ppg_input_channels: int = 3
 
     # Latent
-    latent_mode: Literal["predlatent"] = "predlatent" 
+    latent_mode: Literal["predlatent", "decoder_only"] = "predlatent" 
     latent_chunk: int = 2 
     latent_res: int = 512
