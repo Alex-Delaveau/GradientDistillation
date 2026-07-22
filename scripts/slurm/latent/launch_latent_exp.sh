@@ -46,7 +46,7 @@ submit() {
     local time="$TIME_DECODER_ONLY"
     [ "$mode" = "predlatent" ] && time="$TIME_PREDLATENT"
 
-    local run_name="${MODEL}_latent_${mode}_medoids_${OPTIM}_lr${lr}_s${seed}"
+    local run_name="${MODEL}_latent_${mode}_medoids_${OPTIM}_lr${lr}"
 
     if [ -n "$ONLY" ] && [[ "$run_name" != *"$ONLY"* ]]; then
         return
