@@ -125,8 +125,8 @@ JOBID=$(sbatch --parsable \
     --array="1-${N}%${CONCURRENCY}" \
     --time="$TIME" \
     --job-name="distill_${DATASET}_${STAMP}" \
-    --output="$LOG_DIR/%A_%a.out" \
-    --error="$LOG_DIR/%A_%a.err" \
+    --output="$LOG_DIR/%x_%A_%a.out" \
+    --error="$LOG_DIR/%x_%A_%a.err" \
     --export=ALL,MANIFEST="$MANIFEST",MODEL="$MODEL",DATASET="$DATASET",OUTPUT_ROOT="$OUTPUT_ROOT" \
     "$SLURM_SCRIPT")
 
