@@ -68,7 +68,7 @@ variant_flags() {
 variant_lr() {
     case "$1" in
         latent_*) echo "1e-3" ;;
-        *)        echo "${PIXEL_LR:-1e-2}" ;;
+        *)        echo "0.002" ;;
     esac
 }
 
