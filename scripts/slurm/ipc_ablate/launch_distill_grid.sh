@@ -11,7 +11,7 @@
 set -euo pipefail
 
 REPO=${REPO:-$WORK/projects/GradientDistillation}
-SLURM_SCRIPT=${SLURM_SCRIPT:-scripts/slurm/distill_grid.slurm}
+SLURM_SCRIPT=${SLURM_SCRIPT:-scripts/slurm/ipc_ablate/distill_grid.slurm}
 
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
