@@ -7,6 +7,7 @@
 #   ./launch_distill_grid.sh --dry-run
 #   ./launch_distill_grid.sh --ipcs "1 3 5" --variants pixel --seeds "0 1 2 3 4"
 #   ./launch_distill_grid.sh --variants "pixel physics_slurpp" --concurrency 6
+#   ./launch_distill_grid.sh --output-root $WORK/.../output/autre_campagne
 #
 set -euo pipefail
 
@@ -22,6 +23,7 @@ SAMPLE_INIT=${SAMPLE_INIT:-medoids}
 OPT=${OPT:-adam}
 TIME=${TIME:-20:00:00}
 CONCURRENCY=${CONCURRENCY:-4}
+OUTPUT_ROOT=${OUTPUT_ROOT:-$REPO/output/ipc_ablation}
 DRY_RUN=0
 
 while [[ $# -gt 0 ]]; do
@@ -35,8 +37,9 @@ while [[ $# -gt 0 ]]; do
         --opt)          OPT="$2";          shift 2 ;;
         --time)         TIME="$2";         shift 2 ;;
         --concurrency)  CONCURRENCY="$2";  shift 2 ;;
+        --output-root)  OUTPUT_ROOT="$2";  shift 2 ;;
         --dry-run)      DRY_RUN=1;         shift ;;
-        -h|--help)      sed -n '2,12p' "$0"; exit 0 ;;
+        -h|--help)      sed -n '2,13p' "$0"; exit 0 ;;
         *) echo "option inconnue : $1" >&2; exit 1 ;;
     esac
 done
@@ -64,7 +67,8 @@ variant_flags() {
     esac
 }
 
-# lr par famille : les lr pixel n'ont aucun sens dans l'espace latent
+# lr par famille : les lr pixel n'ont aucun sens dans l'espace latent.
+# Valeurs heritees de runs deja valides dans leurs espaces respectifs.
 variant_lr() {
     case "$1" in
         latent_*) echo "1e-3" ;;
@@ -72,10 +76,12 @@ variant_lr() {
     esac
 }
 
-# --- construction du manifeste -------------------------------------------
+# --- arborescence de sortie (miroir du launcher latent) -------------------
 cd "$REPO"
-mkdir -p logs/manifests logs/ipc_ablation
+LOG_DIR="$OUTPUT_ROOT/logs"
+mkdir -p "$LOG_DIR" "$OUTPUT_ROOT/wandb" "$OUTPUT_ROOT/results" logs/manifests
 
+# --- construction du manifeste -------------------------------------------
 STAMP=$(date +%Y%m%d_%H%M%S)
 MANIFEST="$REPO/logs/manifests/grid_${STAMP}.tsv"
 : > "$MANIFEST"
@@ -86,6 +92,14 @@ for ipc in $IPCS; do
         lr=$(variant_lr "$variant")
         for seed in $SEEDS; do
             run_name="${MODEL}_ipc${ipc}_${variant}_${SAMPLE_INIT}_${OPT}_lr${lr}_s${seed}"
+
+            # garde-fou : deux runs de meme nom s'ecraseraient silencieusement
+            if [[ -d "$OUTPUT_ROOT/results/${DATASET}/${MODEL}/${run_name}" ]]; then
+                echo "[erreur] ${run_name} existe deja sous ${OUTPUT_ROOT} —" \
+                     "supprimer, renommer, ou changer --output-root" >&2
+                exit 1
+            fi
+
             full_flags="--ipc=${ipc} ${flags} --sample_init=${SAMPLE_INIT}"
             full_flags+=" --distill_opt=${OPT} --lr=${lr} --seed=${seed}"
             printf '%s\t%s\n' "$run_name" "$full_flags" >> "$MANIFEST"
@@ -95,8 +109,9 @@ done
 
 N=$(wc -l < "$MANIFEST")
 
-echo "manifeste : $MANIFEST"
-echo "taches    : $N  (concurrence ${CONCURRENCY}, walltime ${TIME})"
+echo "manifeste   : $MANIFEST"
+echo "output root : $OUTPUT_ROOT"
+echo "taches      : $N  (concurrence ${CONCURRENCY}, walltime ${TIME})"
 echo "------------------------------------------------------------------"
 nl -ba "$MANIFEST" | sed 's/\t/  |  /'
 echo "------------------------------------------------------------------"
@@ -110,9 +125,14 @@ JOBID=$(sbatch --parsable \
     --array="1-${N}%${CONCURRENCY}" \
     --time="$TIME" \
     --job-name="distill_${DATASET}_${STAMP}" \
-    --export=ALL,MANIFEST="$MANIFEST",MODEL="$MODEL",DATASET="$DATASET" \
+    --output="$LOG_DIR/%A_%a.out" \
+    --error="$LOG_DIR/%A_%a.err" \
+    --export=ALL,MANIFEST="$MANIFEST",MODEL="$MODEL",DATASET="$DATASET",OUTPUT_ROOT="$OUTPUT_ROOT" \
     "$SLURM_SCRIPT")
 
-echo "soumis : job array ${JOBID}"
-echo "suivi  : squeue -j ${JOBID}"
-echo "relance d'une tache : sbatch --array=<id> --export=ALL,MANIFEST=${MANIFEST} ${SLURM_SCRIPT}"
+echo "soumis  : job array ${JOBID}"
+echo "suivi   : squeue -j ${JOBID}"
+echo "logs    : ${LOG_DIR}/${JOBID}_<task>.out"
+echo "results : ${OUTPUT_ROOT}/results/${DATASET}/${MODEL}/<run_name>/"
+echo "relance d'une tache :"
+echo "  sbatch --array=<id> --export=ALL,MANIFEST=${MANIFEST},OUTPUT_ROOT=${OUTPUT_ROOT} ${SLURM_SCRIPT}"   
