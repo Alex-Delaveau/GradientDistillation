@@ -16,7 +16,7 @@ class DistillCfg(BaseCfg):
     distill_mode: Literal["pixel", "pyramid"] = "pyramid"
     aug_mode: Literal["standard", "none"] = "standard"
     decorrelate_color: bool = True
-    distill_opt: Literal["sgd", "adam"] = "sgd"
+    distill_opt: Literal["sgd", "adam"] = "adam"
 
     init_mode: Literal["noise", "zero"] = "noise"
 

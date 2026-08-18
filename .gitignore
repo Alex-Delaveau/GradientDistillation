@@ -18,3 +18,12 @@ logged_files
 .DS_Store
 
 exp/outputs
+output/
+logs/
+slurm-*.out
+core-python-*
+core.*
+*.pt
+*.pth
+*.ckpt
+*.safetensors
