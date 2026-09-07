@@ -53,7 +53,7 @@ class Fish4Knowledge(BaseRealDataset):
         self.mean = torch.tensor(mean, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
         self.std = torch.tensor(std, device=DeviceSingleton.get()).reshape(1, 3, 1, 1)
 
-        root = f"{data_root}/fish4knowledge"
+        root = f"{data_root}/fish_image"
         full_ds = tv_datasets.ImageFolder(
             root,
             transform=self.transform,
