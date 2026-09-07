@@ -117,3 +117,7 @@ class Fish4Knowledge(BaseRealDataset):
             f"get_single_class({cls}) a renvoyé des labels {labels.unique().tolist()}"
         )
         return images
+
+    def get_path(self, idx: int) -> str:
+        """Get the file path of the image at the specified index."""
+        return self.full_ds.samples[self.ds.indices[idx]][0]
