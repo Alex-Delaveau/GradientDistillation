@@ -20,6 +20,7 @@ class Fish4Knowledge(BaseRealDataset):
 
     NUM_CLASSES = 23
     TRAIN_RATIO = 0.8
+    SPLIT_SEED = 123
 
     def __init__(
     self,
@@ -71,7 +72,7 @@ class Fish4Knowledge(BaseRealDataset):
         # Stratified train/test split (preserves per-class proportions)
         targets_all = np.asarray(full_ds.targets)
         splitter = StratifiedShuffleSplit(
-            n_splits=1, train_size=self.TRAIN_RATIO, random_state=seed
+            n_splits=1, train_size=self.TRAIN_RATIO, random_state=self.SPLIT_SEED
         )
         train_idx, test_idx = next(
             splitter.split(np.zeros(len(targets_all)), targets_all)
