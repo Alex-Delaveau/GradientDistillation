@@ -27,3 +27,8 @@ core.*
 *.pth
 *.ckpt
 *.safetensors
+exp/*.csv
+exp/*.png
+exp/*.pdf
+exp/figures/
+*.txt

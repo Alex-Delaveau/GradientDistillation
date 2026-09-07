@@ -35,6 +35,7 @@ MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
 DATA_ROOT=${DATA_ROOT:-$WORK/datasets/aqua20}
 IPC=${IPC:-1}
+AUGS=${AUGS:-10}
 SEED=${SEED:-3407}
 
 # ---- absolute output root (single source of truth, from launcher via --export) ----
@@ -88,6 +89,7 @@ srun python -m distillation.distill \
     --crop_res=224 \
     --train_crop_mode=random \
     --ipc=$IPC \
+    --augs_per_batch=$AUGS \
     --num_workers=24 \
     --formation_mode=physics \
     --distill_mode=pyramid \

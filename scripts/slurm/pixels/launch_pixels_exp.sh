@@ -20,6 +20,7 @@ DRYRUN=${DRYRUN:-0}
 PRIORS=${PRIORS:-"none slurpp ppg"}
 SEEDS=${SEEDS:-"3407 42 1234 2024 7"}
 IPC=${IPC:-"1 3 5"}
+AUGS=${AUGS:-10}
 ONLY=${ONLY:-}
 MODEL=${MODEL:-dinov2_vitb}
 DATASET=${DATASET:-aqua20}
@@ -68,7 +69,7 @@ submit() {
         --constraint="$CONSTRAINT"
         --qos="$QOS"
         --time="$time"
-        --export=ALL,OUTPUT_ROOT="$OUTPUT_ROOT",RUN_NAME="$run_name",PRIOR="$prior",SEED="$seed",IPC="$ipc",MODEL="$MODEL",DATASET="$DATASET",DATA_ROOT="$DATA_ROOT"
+        --export=ALL,OUTPUT_ROOT="$OUTPUT_ROOT",RUN_NAME="$run_name",PRIOR="$prior",SEED="$seed",IPC="$ipc",AUGS="$AUGS",MODEL="$MODEL",DATASET="$DATASET",DATA_ROOT="$DATA_ROOT"
         "$SLURM_SCRIPT"
     )
 
