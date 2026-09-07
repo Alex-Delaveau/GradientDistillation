@@ -172,7 +172,7 @@ def get_dataset(
                 data_root=data_root,
             )
 
-        case "fish4knowledge":
+        case "f4k":
             from .fish import Fish4Knowledge
             train_dataset = Fish4Knowledge(
                 split="train",
