@@ -34,12 +34,10 @@ QOS="qos_gpu_h100-t3"
 time_for() {
     local prior="$1" ipc="$2"
     case "$prior:$ipc" in
-        slurpp:1) echo "14:00:00" ;;
+        slurpp:1) echo "16:00:00" ;;
         slurpp:3) echo "18:00:00" ;;
         slurpp:5) echo "20:00:00" ;;
-        *:1)      echo "10:00:00" ;;
-        *:3)      echo "14:00:00" ;;
-        *:5)      echo "18:00:00" ;;
+        *)        echo "18:00:00" ;;
     esac
 }
 
