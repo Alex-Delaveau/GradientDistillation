@@ -6,12 +6,14 @@
 #  -> 2 variants per seed (x LRs if LRS has several values).
 #
 # Usage:
-#   ./launch_latent_exp.sh                          # 2 modes x 1 seed = 2 jobs
-#   DRYRUN=1 ./launch_latent_exp.sh                 # preview, submit nothing
+#   ./launch_latent_exp.sh                          # h100, 2 modes x 1 seed = 2 jobs
+#   ARCH=a100 ./launch_latent_exp.sh                # same runs on A100-80G
+#   ARCH=a100 DRYRUN=1 ./launch_latent_exp.sh       # preview, submit nothing
 #   MODES="decoder_only" ./launch_latent_exp.sh     # ablation only
 #   SEEDS="3407 42 1234 2024 7" ./launch_latent_exp.sh   # multi-seed n=5
 #   LRS="1e-4 1e-3 1e-2" MODES="decoder_only" ./launch_latent_exp.sh  # LR mini-sweep
 #   ONLY=decoder ./launch_latent_exp.sh             # substring filter on run_name
+#   TIME_PREDLATENT=06:00:00 ./launch_latent_exp.sh # shorter walltime -> backfill
 set -euo pipefail
 
 SLURM_SCRIPT="$(dirname "$0")/latent_f4k_exp.slurm"
@@ -29,15 +31,41 @@ ONLY=${ONLY:-}
 
 MODEL=${MODEL:-dinov2_vitb}
 OPTIM=${OPTIM:-adam}
-LATENT_CHUNK=${LATENT_CHUNK:-2}
 
-# --- resources (h100) ---
-ACCOUNT="rbw@h100"
-CONSTRAINT="h100"
-QOS="qos_gpu_h100-t3"
+# --- resources, resolved per architecture ---
+# CPUS follows the node ratio: h100 96c/4gpu, a100 64c/8gpu, v100 40c/4gpu.
+# Asking for more than the ratio is rejected by the scheduler.
+ARCH=${ARCH:-h100}
+case "$ARCH" in
+  h100)
+    ACCOUNT_DEF="rbw@h100";  CONSTRAINT_DEF="h100"
+    QOS_DEF="qos_gpu_h100-t3";  CPUS_DEF=24;  CHUNK_DEF=2 ;;
+  a100)
+    ACCOUNT_DEF="rbw@a100";  CONSTRAINT_DEF="a100"
+    QOS_DEF="qos_gpu_a100-t3";  CPUS_DEF=8;   CHUNK_DEF=2 ;;
+  v100)
+    # 32GB only -- predlatent will very likely OOM at latent_res=512.
+    ACCOUNT_DEF="rbw@v100";  CONSTRAINT_DEF="v100-32g"
+    QOS_DEF="qos_gpu-t3";    CPUS_DEF=10;  CHUNK_DEF=1 ;;
+  *)
+    echo "ARCH inconnue: '$ARCH' (attendu: h100 | a100 | v100)" >&2; exit 1 ;;
+esac
+
+ACCOUNT=${ACCOUNT:-$ACCOUNT_DEF}
+CONSTRAINT=${CONSTRAINT:-$CONSTRAINT_DEF}
+QOS=${QOS:-$QOS_DEF}
+CPUS=${CPUS:-$CPUS_DEF}
+LATENT_CHUNK=${LATENT_CHUNK:-$CHUNK_DEF}
+
 # predlatent pays the dual-UNet forward at init; decoder_only skips it.
-TIME_PREDLATENT="20:00:00"
-TIME_DECODER_ONLY="10:00:00"
+# Keep these as tight as your sacct history allows -- a 20h request is
+# excluded from almost every backfill window.
+TIME_PREDLATENT=${TIME_PREDLATENT:-"20:00:00"}
+TIME_DECODER_ONLY=${TIME_DECODER_ONLY:-"10:00:00"}
+
+if [ "$ARCH" = "v100" ] && [[ "$MODES" == *predlatent* ]]; then
+    echo "WARNING: predlatent on v100-32g will likely OOM at latent_res=512." >&2
+fi
 
 njobs=0
 
@@ -60,7 +88,8 @@ submit() {
         --constraint="$CONSTRAINT"
         --qos="$QOS"
         --time="$time"
-        --export=ALL,OUTPUT_ROOT="$OUTPUT_ROOT",RUN_NAME="$run_name",SEED="$seed",MODEL="$MODEL",OPTIM="$OPTIM",LR="$lr",LATENT_MODE="$mode",LATENT_CHUNK="$LATENT_CHUNK"
+        --cpus-per-task="$CPUS"
+        --export=ALL,ARCH="$ARCH",OUTPUT_ROOT="$OUTPUT_ROOT",RUN_NAME="$run_name",SEED="$seed",MODEL="$MODEL",OPTIM="$OPTIM",LR="$lr",LATENT_MODE="$mode",LATENT_CHUNK="$LATENT_CHUNK"
         "$SLURM_SCRIPT"
     )
 
@@ -81,6 +110,8 @@ for mode in $MODES; do
 done
 
 echo "-------------------------------------------"
+echo "arch=$ARCH account=$ACCOUNT qos=$QOS cpus=$CPUS chunk=$LATENT_CHUNK"
+echo "walltime: predlatent=$TIME_PREDLATENT decoder_only=$TIME_DECODER_ONLY"
 echo "modes($MODES) x lrs($LRS) x seeds($SEEDS)"
 echo "$njobs jobs $([ "$DRYRUN" = "1" ] && echo 'preview (DRYRUN)' || echo 'submitted')"
 [ -n "$ONLY" ] && echo "filter ONLY='$ONLY'"
