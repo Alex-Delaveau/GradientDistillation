@@ -1,4 +1,4 @@
-from typing import Literal, Tuple
+from typing import Literal
 
 from .base import BaseRealDataset
 
@@ -9,7 +9,7 @@ def get_dataset(
     crop_res: int,
     train_crop_mode: Literal["center", "random"],
     data_root: str,
-) -> Tuple[BaseRealDataset, BaseRealDataset]:
+) -> tuple[BaseRealDataset, BaseRealDataset]:
 
     match name.lower():
 
@@ -205,6 +205,22 @@ def get_dataset(
                 crop_mode="center",
                 data_root=data_root,
             )
+        case "fishnet20":
+                    from .fishnet20 import Fishnet20
+                    train_dataset = Fishnet20(
+                        split="train",
+                        res=res,
+                        crop_res=res,
+                        crop_mode=train_crop_mode,
+                        data_root=data_root,
+                    )
+                    test_dataset = Fishnet20(
+                        split="test",
+                        res=res,
+                        crop_res=crop_res,
+                        crop_mode="center",
+                        data_root=data_root,
+                    )
 
         case "sipfar10":
             from .sipfar import SIPFAR
@@ -224,6 +240,6 @@ def get_dataset(
             )
 
         case _:
-            raise NotImplementedError("Dataset {} not implemented".format(name))
+            raise NotImplementedError(f"Dataset {name} not implemented")
 
     return train_dataset, test_dataset
