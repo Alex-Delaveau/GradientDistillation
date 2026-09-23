@@ -1,18 +1,23 @@
 #!/bin/bash
 # Generic SLURM script for the pixel-space distillation experiment.
 # Variant axis: PRIOR (none | slurpp | ppg) x SEED.
-#SBATCH --account=rbw@h100
-#SBATCH --constraint=h100
-#SBATCH --qos=qos_gpu_h100-t3
+#
+# Resource flags (account / constraint / qos / time / cpus-per-task) are supplied
+# by launch_pixels_fishnet20_exp.sh so the same script runs on h100, a100 or v100.
+#
+# Usage (via the launcher, recommended):
+#   ARCH=a100 ./launch_pixels_fishnet20_exp.sh
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=24
 #SBATCH --hint=nomultithread
-#SBATCH --time=10:00:00
 set -e
+
+# ---- architecture (h100 | a100 | v100) ----
+ARCH=${ARCH:-h100}
+
 module purge
-module load arch/h100
+module load arch/$ARCH
 module load pytorch-gpu/py3/2.8.0
 
 export TORCH_HOME=$WORK/torch_cache
@@ -25,8 +30,17 @@ export TRANSFORMERS_OFFLINE=1
 export HF_HUB_OFFLINE=1
 export XFORMERS_DISABLED=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-export PYTHONUSERBASE=$WORK/python_user/h100
+
+# compiled extensions are NOT portable across architectures -> one prefix per arch
+export PYTHONUSERBASE=$WORK/python_user/$ARCH
 export PATH=$PYTHONUSERBASE/bin:$PATH
+
+if [ ! -d "$PYTHONUSERBASE" ]; then
+    echo "[pixels] ERROR: $PYTHONUSERBASE missing." >&2
+    echo "  module purge && module load arch/$ARCH pytorch-gpu/py3/2.8.0" >&2
+    echo "  PYTHONUSERBASE=$PYTHONUSERBASE pip install --user --no-cache-dir -r requirements.txt" >&2
+    exit 1
+fi
 
 cd $WORK/projects/GradientDistillation
 
@@ -40,11 +54,15 @@ SEED=${SEED:-3407}
 
 # ---- absolute output root (single source of truth, from launcher via --export) ----
 OUTPUT_ROOT=${OUTPUT_ROOT:-$WORK/projects/GradientDistillation/output/pixels_fishnet20}
-RUN_NAME=${RUN_NAME:-${MODEL}_${DATASET}_${PRIOR}_ipc${IPC}_s${SEED}}
+# the seed is appended downstream by the code -> no _s${SEED} here
+RUN_NAME=${RUN_NAME:-${MODEL}_${DATASET}_${PRIOR}_ipc${IPC}}
+
+# dataloader workers follow the CPU allocation (24 on h100, 8 on a100, 10 on v100)
+NUM_WORKERS=${NUM_WORKERS:-${SLURM_CPUS_PER_TASK:-8}}
 
 export WANDB_DIR=$OUTPUT_ROOT/wandb
 export WANDB_PROJECT=${WANDB_PROJECT:-pixels_fishnet20}
-export WANDB_NAME=$RUN_NAME
+export WANDB_NAME=${RUN_NAME}_s${SEED}
 mkdir -p "$WANDB_DIR" "$OUTPUT_ROOT/results"
 
 # ---- prior-specific flags ----
@@ -76,6 +94,7 @@ esac
 
 echo "[pixels] RUN_NAME=$RUN_NAME"
 echo "  prior=$PRIOR ipc=$IPC seed=$SEED model=$MODEL"
+echo "  arch=$ARCH cpus=$NUM_WORKERS gpu=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)"
 
 srun python -m distillation.distill \
     --model=$MODEL \
@@ -89,7 +108,7 @@ srun python -m distillation.distill \
     --train_crop_mode=random \
     --ipc=$IPC \
     --augs_per_batch=$AUGS \
-    --num_workers=24 \
+    --num_workers=$NUM_WORKERS \
     --formation_mode=physics \
     --distill_mode=pyramid \
     --prior_init=$PRIOR \
