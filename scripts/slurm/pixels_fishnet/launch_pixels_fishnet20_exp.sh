@@ -47,6 +47,31 @@ case "$ARCH" in
     echo "ARCH inconnue: '$ARCH' (attendu: h100 | a100 | v100)" >&2; exit 1 ;;
 esac
 
+
+# MODE=t3  : un job long par run (comportement actuel)
+# MODE=dev : segments de 2 h chaînés (afterany), reprise sur checkpoint
+MODE=${MODE:-t3}
+case "$ARCH:$MODE" in
+  h100:dev) QOS_DEF="qos_gpu_h100-dev" ;;
+  a100:dev) QOS_DEF="qos_gpu_a100-dev" ;;
+  v100:dev) QOS_DEF="qos_gpu-dev" ;;
+  *:t3)     ;;
+  *) echo "MODE inconnu: '$MODE' (attendu: t3 | dev)" >&2; exit 1 ;;
+esac
+
+# segments de 2 h par run en mode dev : à recalibrer sur les logs (itérations atteintes en 2 h)
+SEG_IPC1=${SEG_IPC1:-4}
+SEG_IPC3=${SEG_IPC3:-6}
+SEG_IPC5=${SEG_IPC5:-9}
+DEV_CAP=10          # MaxSubmitPU des QoS dev
+PLAN_ONLY=0
+
+seg_for() {
+    case "$1" in
+        1) echo "$SEG_IPC1" ;; 3) echo "$SEG_IPC3" ;; 5) echo "$SEG_IPC5" ;;
+    esac
+}
+
 ACCOUNT=${ACCOUNT:-$ACCOUNT_DEF}
 CONSTRAINT=${CONSTRAINT:-$CONSTRAINT_DEF}
 QOS=${QOS:-$QOS_DEF}
@@ -74,22 +99,25 @@ njobs=0
 submit() {
     local prior="$1" ipc="$2" seed="$3"
 
-    local time
-    if [ -n "$TIME" ]; then
-        time="$TIME"
-    else
-        time=$(time_for "$prior" "$ipc")
-    fi
-    if [ -z "$time" ]; then
-        echo "no time budget for arch=$ARCH prior=$prior ipc=$ipc" >&2
-        exit 2
-    fi
-
     # la graine est apposée en aval par le code -> pas de _s${seed} ici
     local run_name="${MODEL}_${DATASET}_${prior}_ipc${ipc}"
     if [ -n "$ONLY" ] && [[ "$run_name" != *"$ONLY"* ]]; then
         return
     fi
+
+    local time nseg
+    if [ "$MODE" = "dev" ]; then
+        time="02:00:00"; nseg=$(seg_for "$ipc")
+    else
+        time=${TIME:-$(time_for "$prior" "$ipc")}; nseg=1
+    fi
+    if [ -z "$time" ] || [ -z "$nseg" ]; then
+        echo "no time/segment budget for arch=$ARCH mode=$MODE prior=$prior ipc=$ipc" >&2
+        exit 2
+    fi
+
+    # passe de planification : on compte sans soumettre
+    if [ "$PLAN_ONLY" = "1" ]; then njobs=$((njobs+nseg)); return; fi
 
     local args=(
         --job-name="pxl_${run_name}_s${seed}"
@@ -104,21 +132,43 @@ submit() {
         "$SLURM_SCRIPT"
     )
 
-    if [ "$DRYRUN" = "1" ]; then
-        echo "sbatch ${args[*]}"
-    else
-        sbatch "${args[@]}"
-    fi
-    njobs=$((njobs+1))
+    local prev="" k
+    local -a dep
+    for k in $(seq 1 "$nseg"); do
+        dep=()
+        [ -n "$prev" ] && dep=(--dependency=afterany:"$prev")
+        if [ "$DRYRUN" = "1" ]; then
+            echo "sbatch ${dep[*]} ${args[*]}"
+            prev="<seg$k>"
+        else
+            prev=$(sbatch --parsable "${dep[@]}" "${args[@]}")
+            prev=${prev%%;*}
+            echo "  ${run_name}_s${seed}  seg $k/$nseg -> $prev"
+        fi
+        njobs=$((njobs+1))
+    done
 }
 
-for prior in $PRIORS; do
-    for ipc in $IPC; do
-        for seed in $SEEDS; do
-            submit "$prior" "$ipc" "$seed"
+run_grid() {
+    for prior in $PRIORS; do
+        for ipc in $IPC; do
+            for seed in $SEEDS; do
+                submit "$prior" "$ipc" "$seed"
+            done
         done
     done
-done
+}
+
+PLAN_ONLY=1; njobs=0; run_grid; planned=$njobs
+if [ "$MODE" = "dev" ]; then
+    current=$(squeue -u "$USER" -h -q "$QOS" | wc -l)
+    if (( current + planned > DEV_CAP )); then
+        echo "[dev] $planned segments prévus + $current déjà en file > $DEV_CAP (MaxSubmitPU)." >&2
+        echo "      Réduis PRIORS/IPC/SEEDS ou les SEG_IPCn." >&2
+        [ "$DRYRUN" = "1" ] || exit 3
+    fi
+fi
+PLAN_ONLY=0; njobs=0; run_grid
 
 echo "-------------------------------------------"
 echo "arch=$ARCH account=$ACCOUNT qos=$QOS cpus=$CPUS"
@@ -130,3 +180,4 @@ echo "output root: $OUTPUT_ROOT"
 echo "  logs   : $LOG_DIR"
 echo "  wandb  : $OUTPUT_ROOT/wandb"
 echo "  results: $OUTPUT_ROOT/results/$DATASET/$MODEL/<run_name>_s<seed>/"
+echo "mode=$MODE $([ "$MODE" = "dev" ] && echo "segments: ipc1=$SEG_IPC1 ipc3=$SEG_IPC3 ipc5=$SEG_IPC5")"
