@@ -45,6 +45,7 @@ IPC=${IPC:-"1 3 5"}
 AUGS=${AUGS:-10}
 MODEL=${MODEL:-dinov2_vitb}
 TIME=${TIME:-}
+NSEG=${NSEG:-1}
 
 # --- resources, resolved per architecture ---
 # CPUS follows the node ratio: h100 96c/4gpu, a100 64c/8gpu, v100 40c/4gpu.
@@ -103,8 +104,19 @@ submit() {
         --export=ALL,ARCH="$ARCH",OUTPUT_ROOT="$OUTPUT_ROOT",RUN_NAME="$run_name",SEED="$seed",IPC="$ipc",AUGS="$AUGS",MODEL="$MODEL",DATASET="$DATASET",DATA_ROOT="$DATA_ROOT"
         "$SLURM_SCRIPT"
     )
-    if [ "$DRYRUN" = "1" ]; then echo "sbatch ${args[*]}"; else sbatch "${args[@]}"; fi
-    njobs=$((njobs+1))
+    local prev="" k
+    local -a dep
+    for k in $(seq 1 "$NSEG"); do
+        dep=()
+        [ -n "$prev" ] && dep=(--dependency=afterany:"$prev")
+        if [ "$DRYRUN" = "1" ]; then
+            echo "sbatch ${dep[*]} ${args[*]}"; prev="<seg$k>"
+        else
+            prev=$(sbatch --parsable "${dep[@]}" "${args[@]}"); prev=${prev%%;*}
+            echo "  ${run_name}_s${seed}  seg $k/$NSEG -> $prev"
+        fi
+        njobs=$((njobs+1))
+    done
 }
 
 for ipc in $IPC; do for seed in $SEEDS; do submit "$ipc" "$seed"; done; done

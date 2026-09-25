@@ -53,6 +53,12 @@ SEED=${SEED:-3407}
 OUTPUT_ROOT=${OUTPUT_ROOT:-$WORK/projects/GradientDistillation/output/baseline_${DATASET}}
 # the seed is appended downstream by the code -> no _s${SEED} here
 RUN_NAME=${RUN_NAME:-${MODEL}_${DATASET}_baseline_ipc${IPC}}
+RUN_DIR="$OUTPUT_ROOT/results/$DATASET/$MODEL/${RUN_NAME}_s${SEED}"
+if [ -f "$RUN_DIR/DONE" ]; then
+    echo "[baseline] $RUN_DIR déjà terminé, segment ignoré."
+    scancel --me --name="$SLURM_JOB_NAME" --state=PENDING || true
+    exit 0
+fi
 
 # dataloader workers follow the CPU allocation (24 on h100, 8 on a100, 10 on v100)
 NUM_WORKERS=${NUM_WORKERS:-${SLURM_CPUS_PER_TASK:-8}}
@@ -93,3 +99,6 @@ srun python -m distillation.distill \
     --eval_metrics=f1 \
     --seed=$SEED \
     "$@"
+
+mkdir -p "$RUN_DIR" && touch "$RUN_DIR/DONE"
+scancel --me --name="$SLURM_JOB_NAME" --state=PENDING || true
