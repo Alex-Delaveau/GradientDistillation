@@ -51,6 +51,7 @@ DATA_ROOT=${DATA_ROOT:-$WORK/datasets}
 IPC=${IPC:-1}
 AUGS=${AUGS:-10}
 SEED=${SEED:-3407}
+EVAL_IT=${EVAL_IT:-100}
 
 # ---- absolute output root (single source of truth, from launcher via --export) ----
 OUTPUT_ROOT=${OUTPUT_ROOT:-$WORK/projects/GradientDistillation/output/pixels_fishnet20}
@@ -99,7 +100,7 @@ case "$PRIOR" in
 esac
 
 echo "[pixels] RUN_NAME=$RUN_NAME"
-echo "  prior=$PRIOR ipc=$IPC seed=$SEED model=$MODEL"
+echo "  prior=$PRIOR ipc=$IPC seed=$SEED model=$MODEL eval_it=$EVAL_IT"
 echo "  arch=$ARCH cpus=$NUM_WORKERS gpu=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)"
 
 srun python -m distillation.distill \
@@ -127,7 +128,7 @@ srun python -m distillation.distill \
     --pyramid_snapshot_it=2500 \
     --image_log_it=2500 \
     --checkpoint_it=100 \
-    --eval_it=100 \
+    --eval_it=$EVAL_IT \
     --eval_num_eval=1 \
     --eval_epochs=100 \
     --iterations=5000 \
