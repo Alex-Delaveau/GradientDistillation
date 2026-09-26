@@ -51,6 +51,9 @@ IPC=${IPC:-1}
 AUGS=${AUGS:-10}
 SEED=${SEED:-3407}
 OUTPUT_ROOT=${OUTPUT_ROOT:-$WORK/projects/GradientDistillation/output/baseline_${DATASET}}
+EVAL_IT=${EVAL_IT:-100}
+
+
 # the seed is appended downstream by the code -> no _s${SEED} here
 RUN_NAME=${RUN_NAME:-${MODEL}_${DATASET}_baseline_ipc${IPC}}
 RUN_DIR="$OUTPUT_ROOT/results/$DATASET/$MODEL/${RUN_NAME}_s${SEED}"
@@ -92,7 +95,7 @@ srun python -m distillation.distill \
     --pyramid_snapshot_it=2500 \
     --image_log_it=2500 \
     --checkpoint_it=100 \
-    --eval_it=100 \
+    --eval_it=$EVAL_IT \
     --eval_num_eval=1 \
     --eval_epochs=100 \
     --iterations=5000 \
