@@ -69,7 +69,9 @@ submit() {
         echo "walltime $time exceeds ${QOS_MAX_H}h ($QOS)" >&2; exit 2
     fi
 
-    # the seed is appended downstream by the code -> no _s${seed} here
+    # must match the name derived in distill_controls.slurm (seed appended by the code);
+    # the job name ctl_<run_name>_s<seed> is what lets a finished run cancel its own
+    # pending segments, and only those
     local run_name="${MODEL}_${DATASET}_${variant}_ipc${ipc}"
     if [ -n "$ONLY" ] && [[ "$run_name" != *"$ONLY"* ]]; then
         return
@@ -83,7 +85,7 @@ submit() {
         --constraint="$CONSTRAINT"
         --qos="$QOS"
         --time="$time"
-        --export=ALL,ARCH="$ARCH",OUTPUT_ROOT="$OUTPUT_ROOT",RUN_NAME="$run_name",VARIANT="$variant",SEED="$seed",IPC="$ipc",AUGS="$AUGS",MODEL="$MODEL",DATASET="$DATASET",DATA_ROOT="$DATA_ROOT"
+        --export=ALL,ARCH="$ARCH",OUTPUT_ROOT="$OUTPUT_ROOT",VARIANT="$variant",SEED="$seed",IPC="$ipc",AUGS="$AUGS",MODEL="$MODEL",DATASET="$DATASET",DATA_ROOT="$DATA_ROOT"
         "$SLURM_SCRIPT"
     )
 

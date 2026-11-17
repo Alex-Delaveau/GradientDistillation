@@ -66,13 +66,29 @@ NUM_WORKERS=${NUM_WORKERS:-24}
 
 # ---- absolute output root (single source of truth, from launcher via --export) ----
 OUTPUT_ROOT=${OUTPUT_ROOT:-$WORK/projects/GradientDistillation/output/controls}
-# the seed is appended downstream by the code -> no _s${SEED} here
-RUN_NAME=${RUN_NAME:-${MODEL}_${DATASET}_${VARIANT}_ipc${IPC}}
+# The run name is ALWAYS derived from the variant: an inherited RUN_NAME is ignored
+# (wrappers such as slaunch export RUN_NAME=<script name>, which would make every
+# variant/seed share one directory). Only CTL_RUN_NAME overrides it (timing runs).
+# The seed is appended downstream by the code -> no _s${SEED} here.
+DEFAULT_RUN_NAME=${MODEL}_${DATASET}_${VARIANT}_ipc${IPC}
+if [ -n "${RUN_NAME:-}" ] && [ "$RUN_NAME" != "${CTL_RUN_NAME:-$DEFAULT_RUN_NAME}" ]; then
+    echo "[controls] ignoring inherited RUN_NAME='$RUN_NAME' (use CTL_RUN_NAME to override)"
+fi
+RUN_NAME=${CTL_RUN_NAME:-$DEFAULT_RUN_NAME}
 RUN_DIR="$OUTPUT_ROOT/results/$DATASET/$MODEL/${RUN_NAME}_s${SEED}"
+
+# Cancel the pending chained segments of THIS run only: they are recognized by the
+# exact job name given by launch_controls.sh. Any other job name (slaunch, smoke,
+# timing wrappers...) may be shared by unrelated jobs -> never cancel on it.
+cancel_pending_segments() {
+    if [ "${SLURM_JOB_NAME:-}" = "ctl_${RUN_NAME}_s${SEED}" ]; then
+        scancel --me --name="$SLURM_JOB_NAME" --state=PENDING || true
+    fi
+}
 
 if [ -f "$RUN_DIR/DONE" ]; then
     echo "[controls] $RUN_DIR already finished (DONE), nothing to do."
-    scancel --me --name="$SLURM_JOB_NAME" --state=PENDING || true
+    cancel_pending_segments
     exit 0
 fi
 if [ -f "$RUN_DIR/ckpt.pth" ]; then
@@ -164,4 +180,4 @@ srun python -m distillation.distill \
 
 echo "[controls] end $(date '+%F %T') epoch=$(date +%s)"
 mkdir -p "$RUN_DIR" && touch "$RUN_DIR/DONE"
-scancel --me --name="$SLURM_JOB_NAME" --state=PENDING || true
+cancel_pending_segments

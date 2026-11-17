@@ -15,6 +15,8 @@
 #   for c in baseline none ppg slurpp none_frozen affine slurpp_t1 none_t3; do
 #     sbatch --job-name=ctl_time_$c --export=ALL,COND=$c scripts/slurm/controls/timing_controls.slurm
 #   done
+# or with slaunch (RUN_NAME only names the job/logs here; it is overwritten inside):
+#   for c in ...; do RUN_NAME=ctl_time_$c COND=$c slaunch scripts/slurm/controls/timing_controls.slurm; done
 #SBATCH --account=rbw@h100
 #SBATCH --constraint=h100
 #SBATCH --qos=qos_gpu_h100-t3
@@ -34,7 +36,10 @@ PROJECT=$WORK/projects/GradientDistillation
 export OUTPUT_ROOT=${OUTPUT_ROOT:-$PROJECT/output/timing}
 export DATASET=aqua20 DATA_ROOT=$WORK/datasets/aqua20 MODEL=dinov2_vitb IPC=1 SEED
 # "_timing" in the run name: distinct wandb ids, never mixed up with paper/control runs
+# (RUN_NAME for the paper scripts, CTL_RUN_NAME for distill_controls.slurm;
+#  an inherited RUN_NAME, e.g. from slaunch, is overwritten here)
 export RUN_NAME=${MODEL}_${DATASET}_${COND}_timing_ipc${IPC}
+export CTL_RUN_NAME=$RUN_NAME
 export PYTHONUNBUFFERED=1          # timestamps must reflect when lines are printed
 
 RUN_DIR=$OUTPUT_ROOT/results/$DATASET/$MODEL/${RUN_NAME}_s${SEED}
@@ -57,5 +62,8 @@ esac
 stamp() { while IFS= read -r line; do printf '%s %s\n' "$EPOCHREALTIME" "$line"; done; }
 
 echo "$EPOCHREALTIME TIMING_BEGIN cond=$COND seed=$SEED script=$SCRIPT job=${SLURM_JOB_ID:-} node=$(hostname)"
-bash "$SCRIPT" "${ARGS[@]}" | stamp
+# The production scripts end with `scancel --name=$SLURM_JOB_NAME --state=PENDING`.
+# If several timing jobs share a name (e.g. slaunch -> "timing_controls"), the first
+# one to finish would cancel the others: give the inner script a name nobody has.
+SLURM_JOB_NAME="__timing_${COND}_${SLURM_JOB_ID:-local}" bash "$SCRIPT" "${ARGS[@]}" | stamp
 echo "$EPOCHREALTIME TIMING_END cond=$COND"

@@ -5,6 +5,7 @@
 # t_channels 1/3, eval at step 0, save_data), then that the DONE marker short-circuits.
 #
 #   sbatch scripts/slurm/controls/smoke_controls.slurm
+#   slaunch scripts/slurm/controls/smoke_controls.slurm     # inherited RUN_NAME is ignored
 #   VARIANTS="affine" sbatch --export=ALL scripts/slurm/controls/smoke_controls.slurm
 #SBATCH --job-name=ctl_smoke
 #SBATCH --account=rbw@h100
@@ -26,6 +27,7 @@ export OUTPUT_ROOT=${OUTPUT_ROOT:-$PROJECT/output/controls_smoke}
 VARIANTS=${VARIANTS:-"none_frozen affine slurpp_t1 none_t3"}
 export SEED=${SEED:-3407}
 export IPC=1
+unset RUN_NAME CTL_RUN_NAME        # run names are derived per variant
 
 status=0
 for v in $VARIANTS; do
