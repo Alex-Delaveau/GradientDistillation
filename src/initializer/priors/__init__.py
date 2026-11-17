@@ -1,6 +1,7 @@
 from .none_init import NonePriorInitializer
 from .ppg_init import PPGInitializer
 from .slurpp_init import SLURPPInitializer
+from .affine_init import AffinePriorInitializer
 import torch
 from torch import Tensor
 import torch.nn.functional as F
@@ -15,6 +16,9 @@ def build_prior(cfg, device):
         return PPGInitializer(cfg)
     if cfg.prior_init == "slurpp":
         return SLURPPInitializer(cfg.slurpp_root, cfg.slurpp_checkpoint_path, device=device)
+    if cfg.prior_init == "affine":
+        # non-physical control: I = J*G + O, same initial image as "none"
+        return AffinePriorInitializer(cfg)
     raise ValueError(f"prior_init unknown: {cfg.prior_init}")
 
 def compute_TB_priors(cfg, train_dataset, prior_init, sample_indices, device):

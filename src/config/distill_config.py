@@ -45,7 +45,7 @@ class DistillCfg(BaseCfg):
 
     # --- physics formation model (PhysicsFormationDataset) ---
     formation_mode: Literal["identity", "physics", "latent"] = "physics"
-    prior_init: Literal["none", "ppg", "slurpp"] = "none"
+    prior_init: Literal["none", "ppg", "slurpp", "affine"] = "none"  # affine = non-physical control
     sample_init : Literal["medoids", "random"] = "medoids"
     freeze_T: bool = False
     freeze_B: bool = False
